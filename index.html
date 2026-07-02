@@ -196,8 +196,8 @@ table tbody tr:nth-child(n+6){animation-delay:.16s;}
 <body>
 <div id="app"></div>
 <script>
-const SB_URL='https://ddasgqmjtcmhwvxvxgea.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYXNncW1qdGNtaHd2eHZ4Z2VhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5NDY4NTgsImV4cCI6MjA5ODUyMjg1OH0.iigamT5341hbdbz7n-CFjy62adfvq5mWDSNTZ9Rwadk';
+const SB_URL='https://krnrzgklclxnowktaess.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtybnJ6Z2tsY2x4bm93a3RhZXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTgyMDMsImV4cCI6MjA5ODQzNDIwM30.tkTcqya_R9wyQuBPsd9qtz7yjSkl43nm9UbDgWq5VGE';
 const sb=supabase.createClient(SB_URL,SB_KEY);
 let S={user:null,profile:null,page:'public',tab:'',modal:null,msg:'',data:{},navOpen:false};
 
@@ -349,7 +349,7 @@ function renderPublicApply(){
         <div class="form-group"><label>Date of Birth</label><input id="a-dob" type="date"/></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>National ID</label><input id="a-nid" placeholder="ID number"/></div>
+        <div class="form-group"><label>National ID *</label><input id="a-nid" placeholder="ID number"/></div>
         <div class="form-group"><label>Phone Number *</label><input id="a-phone" placeholder="+263..."/></div>
       </div>
       <div class="form-group"><label>Email (for password reset)</label><input id="a-email" type="email" placeholder="your@email.com"/></div>
@@ -366,6 +366,22 @@ function renderPublicApply(){
       <div class="form-group"><label>Accommodation *</label>
         <select id="a-res"><option value="day">Day Student</option><option value="boarding">Boarding Student</option></select>
       </div>
+      <div class="form-group"><label>Highest Qualification</label>
+        <select id="a-qual" onchange="document.getElementById('a-qual-other-wrap').style.display=this.value==='other'?'block':'none'">
+          <option value="">None / Not applicable</option>
+          <option value="grade7">Grade 7</option>
+          <option value="zjc">ZJC</option>
+          <option value="o_level">O-Level</option>
+          <option value="a_level">A-Level</option>
+          <option value="certificate">Certificate</option>
+          <option value="diploma">Diploma</option>
+          <option value="degree">Degree</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group" id="a-qual-other-wrap" style="display:none">
+        <label>Please specify</label><input id="a-qual-other" placeholder="e.g. Trade Test, informal training, etc."/>
+      </div>
       <div class="btn-row">
         <button class="btn btn-gold" onclick="submitApp()">Submit Application</button>
         <button class="btn btn-outline" onclick="nav('public')">Cancel</button>
@@ -380,8 +396,12 @@ async function loadApplyCourses(){
 }
 async function submitApp(){
   const name=document.getElementById('a-name')?.value?.trim(),phone=document.getElementById('a-phone')?.value?.trim(),course=document.getElementById('a-course')?.value;
+  const nid=document.getElementById('a-nid')?.value?.trim();
   if(!name||!phone||!course){showMsg('Please fill all required fields (*)','error');return;}
-  const{data,error}=await sb.from('applications').insert([{full_name:name,dob:document.getElementById('a-dob')?.value||null,national_id:document.getElementById('a-nid')?.value||null,phone,email:document.getElementById('a-email')?.value||null,address:document.getElementById('a-addr')?.value||null,course_id:course,track:document.getElementById('a-track')?.value,residence:document.getElementById('a-res')?.value,status:'pending'}]).select().single();
+  if(!nid){showMsg('National ID is required so you can track your application later.','error');return;}
+  const qual=document.getElementById('a-qual')?.value||null;
+  const qualOther=qual==='other'?document.getElementById('a-qual-other')?.value?.trim():null;
+  const{data,error}=await sb.from('applications').insert([{full_name:name,dob:document.getElementById('a-dob')?.value||null,national_id:nid,phone,email:document.getElementById('a-email')?.value||null,address:document.getElementById('a-addr')?.value||null,course_id:course,track:document.getElementById('a-track')?.value,residence:document.getElementById('a-res')?.value,qualification:qual,qualification_other:qualOther,status:'pending'}]).select().single();
   if(error){showMsg(error.message,'error');return;}
   S.page='applied';S.data.appId=data.id;render();
 }
@@ -396,6 +416,7 @@ function renderApplied(){
   </div></div>`;
 }
 function renderTrackStatus(){
+  const mode=S.data.trackMode||'ref';
   return`<div class="login-wrap"><div class="login-box">
     <div class="login-logo"><div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px">${LOGO(74)}<h1 style="margin:0">ESigodini VTC</h1></div><p>Application Status</p></div>
     ${S.msg||''}
@@ -403,18 +424,36 @@ function renderTrackStatus(){
       <strong>Status: ${S.data.trackResult.status?.toUpperCase()}</strong><br>
       Name: ${S.data.trackResult.full_name}<br>Course: ${S.data.trackResult.courses?.name||'-'}<br>
       Applied: ${fmt(S.data.trackResult.created_at)}
+      ${S.data.trackResult.status==='approved'?`<br>Reg Number: <strong>${S.data.trackResult.reg_number||'Processing...'}</strong>`:''}
       ${S.data.trackResult.rejection_reason?`<br>Reason: ${S.data.trackResult.rejection_reason}`:''}
     </div>`:''}
+    <div class="btn-row" style="margin-bottom:12px">
+      <button class="btn ${mode==='ref'?'btn-primary':'btn-outline'} btn-sm" onclick="S.data.trackMode='ref';render()">By Reference ID</button>
+      <button class="btn ${mode==='nid'?'btn-primary':'btn-outline'} btn-sm" onclick="S.data.trackMode='nid';render()">By National ID</button>
+    </div>
+    ${mode==='ref'?`
     <div class="form-group"><label>Application Reference ID</label><input id="t-id" placeholder="Paste your application ID"/></div>
-    <button class="btn btn-primary" style="width:100%" onclick="doTrack()">Check Status</button>
+    <button class="btn btn-primary" style="width:100%" onclick="doTrack()">Check Status</button>`:`
+    <div class="form-group"><label>National ID</label><input id="t-nid" placeholder="Your ID number"/></div>
+    <div class="form-group"><label>Phone Number</label><input id="t-nid-phone" placeholder="The number you applied with"/></div>
+    <button class="btn btn-primary" style="width:100%" onclick="doTrackByNid()">Check Status</button>`}
     <div style="text-align:center;margin-top:12px"><button class="btn btn-outline btn-sm" onclick="nav('public')">← Home</button></div>
   </div></div>`;
 }
 async function doTrack(){
   const id=document.getElementById('t-id')?.value?.trim();
   if(!id){showMsg('Enter your application ID','error');return;}
-  const{data,error}=await sb.from('applications').select('*,courses(name)').eq('id',id).single();
+  const{data,error}=await sb.from('applications').select('*,courses(name),students(reg_number)').eq('id',id).single();
   if(error||!data){showMsg('Not found. Check your reference ID.','error');return;}
+  data.reg_number=data.students?.reg_number;
+  S.data.trackResult=data;render();
+}
+async function doTrackByNid(){
+  const nid=document.getElementById('t-nid')?.value?.trim(),phone=document.getElementById('t-nid-phone')?.value?.trim();
+  if(!nid||!phone){showMsg('Enter both your National ID and phone number','error');return;}
+  const{data,error}=await sb.from('applications').select('*,courses(name),students(reg_number)').eq('national_id',nid).eq('phone',phone).order('created_at',{ascending:false}).limit(1).single();
+  if(error||!data){showMsg('No matching application found. Check your details.','error');return;}
+  data.reg_number=data.students?.reg_number;
   S.data.trackResult=data;render();
 }
 // ── NAVBAR ──────────────────────────────────────────
@@ -433,7 +472,7 @@ function renderNav(title){
 // ══════════════════════════════════════════════════
 function renderAdmin(){
   const t=S.tab||'dashboard';
-  const menu=[['dashboard','📊','Dashboard'],['applications','📋','Applications'],['students','🎓','Students'],
+  const menu=[['dashboard','📊','Dashboard'],['applications','📋','Applications'],['accounts','🔑','Register Account'],['students','🎓','Students'],
     ['staff_mgmt','👥','Staff'],['courses','📚','Courses'],['fees','💰','Fee Structure'],
     ['payments','💳','Payments'],['results','📝','Results'],['library','📁','Library'],
     ['latw','🤝','LATW'],['deferments','⏸️','Deferments'],['leave','🗓️','Staff Leave'],
@@ -448,7 +487,7 @@ function renderAdmin(){
   </div>`;
 }
 function renderAdminTab(t){
-  const tabs={dashboard:aDash,applications:aApps,students:aStudents,staff_mgmt:aStaff,
+  const tabs={dashboard:aDash,applications:aApps,accounts:aAccounts,students:aStudents,staff_mgmt:aStaff,
     courses:aCourses,fees:aFees,payments:aPayments,results:aResults,library:aLibrary,
     latw:aLATW,deferments:aDeferments,leave:aLeave,notices:aNotices,settings:aSettings,audit:aAudit};
   return(tabs[t]||aDash)();
@@ -477,6 +516,49 @@ async function loadDash(){
     <div class="stat"><div class="stat-val">${courses.count||0}</div><div class="stat-lbl">Active Courses</div></div>
     <div class="stat green"><div class="stat-val">${pending_pay.count||0}</div><div class="stat-lbl">Payments to Confirm</div></div>`;
 }
+// Register Account (admin/staff/student — automated, secure account creation)
+function aAccounts(){return`<div class="page-title">Register Account</div>
+  <div class="card"><h2>Create a Login</h2>
+    <div class="alert alert-info">This creates the login automatically and emails the credentials. Use this for staff and admin accounts — students are normally created by approving their application, but you can also register one directly here.</div>
+    <div class="form-group"><label>Account Type *</label>
+      <select id="ra-role" onchange="toggleAccountFields()">
+        <option value="student">Student</option>
+        <option value="staff">Staff</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Full Name *</label><input id="ra-name"/></div>
+      <div class="form-group"><label>Email *</label><input id="ra-email" type="email"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Phone</label><input id="ra-phone" placeholder="+263..."/></div>
+      <div class="form-group" id="ra-course-wrap"><label>Course</label><select id="ra-course"><option value="">Select course</option></select></div>
+    </div>
+    <div class="form-row" id="ra-staff-wrap" style="display:none">
+      <div class="form-group"><label>Position</label><input id="ra-position"/></div>
+      <div class="form-group"><label>Department</label><input id="ra-dept"/></div>
+    </div>
+    <button class="btn btn-primary" onclick="createAccount()">Create Account &amp; Send Login</button>
+  </div>`;}
+function toggleAccountFields(){
+  const role=document.getElementById('ra-role')?.value;
+  document.getElementById('ra-course-wrap').style.display=role==='student'?'block':'none';
+  document.getElementById('ra-staff-wrap').style.display=role==='staff'?'flex':'none';
+  if(role==='student')loadCoursesInto('ra-course');
+}
+async function createAccount(){
+  const role=document.getElementById('ra-role')?.value,name=document.getElementById('ra-name')?.value?.trim(),email=document.getElementById('ra-email')?.value?.trim();
+  if(!role||!name||!email){showMsg('Fill all required fields (*)','error');return;}
+  const payload={action:'create_account',role,full_name:name,email,phone:document.getElementById('ra-phone')?.value||null};
+  if(role==='student')payload.course_id=document.getElementById('ra-course')?.value||null;
+  if(role==='staff'){payload.position=document.getElementById('ra-position')?.value||null;payload.department=document.getElementById('ra-dept')?.value||null;}
+  showMsg('Creating account...');
+  const{data,error}=await sb.functions.invoke('manage-accounts',{body:payload});
+  if(error||data?.error){showMsg((data&&data.error)||error?.message||'Account creation failed.','error');return;}
+  await logAudit(`account.create.${role}`,'profiles',data.user_id,null,{name,email,role});
+  showApprovalResult(Object.assign({full_name:name,phone:payload.phone},data));
+}
 // Applications
 function aApps(){return`<div class="page-title">Applications</div>
   <div class="card"><h2>All Applications</h2>
@@ -499,11 +581,33 @@ async function loadApps(){
   </tr>`).join('');
 }
 async function approveApp(id){
-  if(!confirm('Approve and create student record?'))return;
-  await sb.from('applications').update({status:'approved',reviewed_by:S.user.id,reviewed_at:new Date().toISOString()}).eq('id',id);
-  await logAudit('application.approve','applications',id,{status:'pending'},{status:'approved'});
-  showMsg('Approved! Now create the student account in Supabase Auth and link via the Students tab.');
+  if(!confirm('Approve this application?\n\nThis will automatically create the student\'s login, generate their registration number, and email them an acceptance letter.'))return;
+  showMsg('Processing approval — creating account and sending acceptance letter...');
+  const{data,error}=await sb.functions.invoke('manage-accounts',{body:{action:'approve_application',applicationId:id}});
+  if(error||data?.error){showMsg((data&&data.error)||error?.message||'Approval failed. You can still approve manually below.','error');await loadApps();return;}
+  await logAudit('application.approve','applications',id,{status:'pending'},{status:'approved',reg_number:data.reg_number});
+  showApprovalResult(data);
   await loadApps();
+}
+function showApprovalResult(data){
+  const waMsg=encodeURIComponent(`Congratulations ${data.full_name}! Your application to ESigodini VTC has been ACCEPTED.\nRegistration Number: ${data.reg_number}\nLogin email: ${data.email}\nTemporary password: ${data.temp_password}\nPlease log in and change your password: ${window.location.origin}`);
+  const waLink=data.phone?`https://wa.me/${data.phone.replace(/[^0-9]/g,'')}?text=${waMsg}`:null;
+  document.getElementById('stu-modal')?.remove();
+  document.body.insertAdjacentHTML('beforeend',`<div id="approval-modal"></div>`);
+  document.getElementById('approval-modal').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this){this.remove()}">
+    <div class="modal"><h3>✅ Student Accepted</h3>
+      <div class="alert alert-success">Account created and acceptance email sent automatically.</div>
+      <table style="font-size:.87rem;width:100%"><tbody>
+        <tr><td style="padding:7px;color:var(--grey);width:150px">Reg Number</td><td><strong>${data.reg_number}</strong></td></tr>
+        <tr><td style="padding:7px;color:var(--grey)">Login Email</td><td>${data.email||'—'}</td></tr>
+        <tr><td style="padding:7px;color:var(--grey)">Temp Password</td><td><code>${data.temp_password}</code></td></tr>
+      </tbody></table>
+      <p style="font-size:.8rem;color:var(--grey);margin-top:10px">Student must change this password on first login.</p>
+      <div class="btn-row" style="margin-top:14px">
+        ${waLink?`<a class="btn btn-teal" target="_blank" href="${waLink}">Send via WhatsApp</a>`:''}
+        <button class="btn btn-outline" onclick="document.getElementById('approval-modal').remove()">Close</button>
+      </div>
+    </div></div>`;
 }
 async function rejectApp(id){
   const reason=prompt('Rejection reason (optional):');
@@ -514,7 +618,7 @@ async function rejectApp(id){
 // Students
 function aStudents(){return`<div class="page-title">Students</div>
   <div class="card"><h2>All Students</h2>
-    <button class="btn btn-primary btn-sm" style="margin-bottom:14px" onclick="showAddStudent()">+ Add Student</button>
+    <button class="btn btn-outline btn-sm" style="margin-bottom:14px" onclick="showAddStudent()">+ Manual Entry (fallback, for problem cases)</button>
     <div class="tbl-wrap"><table>
       <thead><tr><th>Reg No.</th><th>Name</th><th>Course</th><th>Track</th><th>Residence</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody id="a-stus-tb"><tr><td colspan="7" class="spinner">Loading...</td></tr></tbody>
@@ -1476,7 +1580,7 @@ function afterRender(){
   const t=S.tab||'';
   const role=S.profile?.role;
   if(role==='admin'){
-    const loaders={dashboard:loadDash,applications:loadApps,students:loadStudents,staff_mgmt:loadAdminStaff,courses:loadCourses,fees:loadFees,payments:loadPayments,results:loadResults,library:loadLibrary,latw:loadLATW,deferments:loadDeferments,leave:loadLeave,notices:loadNotices,settings:loadSettings,audit:loadAudit};
+    const loaders={dashboard:loadDash,applications:loadApps,accounts:()=>loadCoursesInto('ra-course'),students:loadStudents,staff_mgmt:loadAdminStaff,courses:loadCourses,fees:loadFees,payments:loadPayments,results:loadResults,library:loadLibrary,latw:loadLATW,deferments:loadDeferments,leave:loadLeave,notices:loadNotices,settings:loadSettings,audit:loadAudit};
     const fn=loaders[t||'dashboard'];if(fn)fn();
   } else if(role==='student'){
     const loaders={home:loadStuHome,results:loadStuResults,fees:loadStuFees,library:()=>loadStuLibrary('all'),deferment:loadStuDefer,notices:loadStuNotices,account:loadStuAccount};

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>ESigodini VTC Portal</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{--navy:#0C2D4A;--gold:#C8932A;--teal:#0D6E6E;--green:#2E7D32;--purple:#5B3FA6;--coral:#B04040;--light:#F4F1E8;--grey:#666;--danger:#c0392b;--success:#27ae60;--shadow:0 2px 12px rgba(0,0,0,.10);}
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif;}
@@ -196,8 +197,8 @@ table tbody tr:nth-child(n+6){animation-delay:.16s;}
 <body>
 <div id="app"></div>
 <script>
-const SB_URL='https://ddasgqmjtcmhwvxvxgea.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYXNncW1qdGNtaHd2eHZ4Z2VhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5NDY4NTgsImV4cCI6MjA5ODUyMjg1OH0.iigamT5341hbdbz7n-CFjy62adfvq5mWDSNTZ9Rwadk';
+const SB_URL='https://krnrzgklclxnowktaess.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtybnJ6Z2tsY2x4bm93a3RhZXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTgyMDMsImV4cCI6MjA5ODQzNDIwM30.tkTcqya_R9wyQuBPsd9qtz7yjSkl43nm9UbDgWq5VGE';
 const sb=supabase.createClient(SB_URL,SB_KEY);
 let S={user:null,profile:null,page:'public',tab:'',modal:null,msg:'',data:{},navOpen:false};
 
@@ -226,6 +227,41 @@ function LOGO(size){
 }
 function toggleNav(){S.navOpen=!S.navOpen;render();}
 function closeNav(){if(S.navOpen){S.navOpen=false;render();}}
+
+// ---- PDF receipt generation ----
+function downloadReceipt(p){
+  try{
+    const{jsPDF}=window.jspdf;
+    const doc=new jsPDF({unit:'pt',format:'a4'});
+    const pageW=doc.internal.pageSize.getWidth();
+    doc.setFillColor(12,45,74);
+    doc.rect(0,0,pageW,90,'F');
+    try{doc.addImage(LOGO_IMG,'PNG',40,15,60,60);}catch(e){}
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(18);doc.setFont(undefined,'bold');
+    doc.text('ESigodini VTC',115,42);
+    doc.setFontSize(10);doc.setFont(undefined,'normal');
+    doc.text('Official Payment Receipt',115,60);
+    doc.setTextColor(20,20,20);
+    let y=125;
+    const line=(label,val)=>{doc.setFont(undefined,'bold');doc.setFontSize(10);doc.text(label,40,y);
+      doc.setFont(undefined,'normal');doc.text(String(val||'-'),200,y);y+=24;};
+    line('Receipt No.:',p.id?p.id.slice(0,8).toUpperCase():'-');
+    line('Student Name:',p.studentName);
+    line('Registration No.:',p.regNumber);
+    line('Amount Paid:','$'+parseFloat(p.amount).toFixed(2));
+    line('Payment Method:',(p.payment_method_type||'bank_transfer').replace('_',' '));
+    line('Reference:',p.receipt_ref);
+    line('Status:',(p.status||'confirmed').toUpperCase());
+    line('Balance After:',p.balance_after!=null?'$'+parseFloat(p.balance_after).toFixed(2):'-');
+    line('Date:',fmt(p.confirmed_at||p.created_at));
+    y+=10;
+    doc.setDrawColor(200,200,200);doc.line(40,y,pageW-40,y);y+=30;
+    doc.setFontSize(9);doc.setTextColor(120,120,120);
+    doc.text('This is a system-generated receipt from the ESigodini VTC Portal.',40,y);
+    doc.save('Receipt_'+(p.regNumber||'student')+'_'+(p.id?p.id.slice(0,6):'')+'.pdf');
+  }catch(err){showMsg('Could not generate PDF: '+err.message,'error');}
+}
 
 async function init(){
   const {data:{session}}=await sb.auth.getSession();
@@ -872,8 +908,8 @@ function aPayments(){return`<div class="page-title">Payments</div>
   </div>
   <div class="card"><h2>All Confirmed Payments</h2>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Student</th><th>Amount</th><th>Method</th><th>Balance After</th><th>Confirmed</th></tr></thead>
-      <tbody id="a-pay-conf-tb"><tr><td colspan="5" class="spinner">Loading...</td></tr></tbody>
+      <thead><tr><th>Student</th><th>Amount</th><th>Method</th><th>Balance After</th><th>Confirmed</th><th>Receipt</th></tr></thead>
+      <tbody id="a-pay-conf-tb"><tr><td colspan="6" class="spinner">Loading...</td></tr></tbody>
     </table></div>
   </div>`;}
 async function loadPayments(){
@@ -900,7 +936,8 @@ async function loadPayments(){
     <td>${badge(p.payment_method_type||'bank_transfer')}</td>
     <td>${p.balance_after!=null?`$${parseFloat(p.balance_after).toFixed(2)}`:'-'}</td>
     <td>${fmt(p.confirmed_at)}</td>
-  </tr>`).join(''):'<tr><td colspan="5" class="empty">No confirmed payments yet.</td></tr>';
+    <td><button class="btn btn-outline btn-sm" onclick='downloadReceipt(${JSON.stringify({id:p.id,amount:p.amount,payment_method_type:p.payment_method_type,receipt_ref:p.receipt_ref,status:p.status,balance_after:p.balance_after,confirmed_at:p.confirmed_at,created_at:p.created_at,studentName:p.students?.profiles?.full_name,regNumber:p.students?.reg_number}).replace(/'/g,"&apos;")})'>📄 PDF</button></td>
+  </tr>`).join(''):'<tr><td colspan="6" class="empty">No confirmed payments yet.</td></tr>';
 }
 async function confirmPayment(id,studentId,amount){
   // Get total paid so far + current fee structure
@@ -1314,16 +1351,16 @@ function sFees(){return`<div class="page-title">Fees & Payments</div>
   </div>
   <div class="card"><h2>Payment History</h2>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Amount</th><th>Method</th><th>Reference</th><th>Status</th><th>Balance After</th><th>Date</th></tr></thead>
-      <tbody id="s-pay-tb"><tr><td colspan="6" class="spinner">Loading...</td></tr></tbody>
+      <thead><tr><th>Amount</th><th>Method</th><th>Reference</th><th>Status</th><th>Balance After</th><th>Date</th><th>Receipt</th></tr></thead>
+      <tbody id="s-pay-tb"><tr><td colspan="7" class="spinner">Loading...</td></tr></tbody>
     </table></div>
   </div>`;}
 async function loadStuFees(){
-  const{data:stu}=await sb.from('students').select('id,residence,track,course_id').eq('profile_id',S.user.id).single();
+  const{data:stu}=await sb.from('students').select('id,residence,track,course_id,reg_number').eq('profile_id',S.user.id).single();
   if(!stu)return;
   // Fee summary
   const{data:feeStr}=await sb.from('fee_structure').select('amount,label,residence').eq('course_id',stu.course_id).eq('residence',stu.residence).eq('is_active',true);
-  const{data:payments}=await sb.from('fee_payments').select('amount,status,payment_method_type,notes,balance_after,created_at,receipt_ref').eq('student_id',stu.id).order('created_at',{ascending:false});
+  const{data:payments}=await sb.from('fee_payments').select('id,amount,status,payment_method_type,notes,balance_after,created_at,confirmed_at,receipt_ref').eq('student_id',stu.id).order('created_at',{ascending:false});
   const totalFee=(feeStr||[]).reduce((s,f)=>s+parseFloat(f.amount),0);
   const totalPaid=(payments||[]).filter(p=>p.status==='confirmed').reduce((s,p)=>s+parseFloat(p.amount),0);
   const balance=Math.max(0,totalFee-totalPaid);
@@ -1360,7 +1397,8 @@ async function loadStuFees(){
     <td>${badge(p.status)}</td>
     <td>${p.balance_after!=null?`$${parseFloat(p.balance_after).toFixed(2)}`:'-'}</td>
     <td>${fmt(p.created_at)}</td>
-  </tr>`).join(''):'<tr><td colspan="6" class="empty">No payments yet.</td></tr>';
+    <td>${p.status==='confirmed'?`<button class="btn btn-outline btn-sm" onclick='downloadReceipt(${JSON.stringify({id:p.id,amount:p.amount,payment_method_type:p.payment_method_type,receipt_ref:p.receipt_ref,status:p.status,balance_after:p.balance_after,confirmed_at:p.confirmed_at,created_at:p.created_at,studentName:S.profile?.full_name,regNumber:stu.reg_number}).replace(/'/g,"&apos;")})'>📄 PDF</button>`:'-'}</td>
+  </tr>`).join(''):'<tr><td colspan="7" class="empty">No payments yet.</td></tr>';
 }
 async function submitStuPayment(){
   const amt=parseFloat(document.getElementById('sp-amt')?.value);

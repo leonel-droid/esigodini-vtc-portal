@@ -191,11 +191,28 @@ table tbody tr:nth-child(n+6){animation-delay:.16s;}
   .sidebar{display:block;position:fixed;top:0;left:0;height:100vh;z-index:1100;transform:translateX(-104%);transition:transform .32s cubic-bezier(.16,1,.3,1);box-shadow:10px 0 34px rgba(0,0,0,.35);overflow-y:auto;}
   .sidebar.open{transform:translateX(0);}
   .sidebar-backdrop.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1050;animation:fadeIn .25s ease;}
-}
+}/* ===== Help chat widget ===== */
+.help-fab{position:fixed;bottom:22px;right:22px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#0C2D4A,#173F63);color:#fff;border:none;box-shadow:0 6px 20px rgba(0,0,0,.28);font-size:1.5rem;cursor:pointer;z-index:1400;display:flex;align-items:center;justify-content:center;transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+.help-fab:hover{transform:scale(1.08) rotate(-4deg);}
+.help-panel{position:fixed;bottom:92px;right:22px;width:340px;max-width:calc(100vw - 32px);height:460px;max-height:70vh;background:#fff;border-radius:16px;box-shadow:0 16px 48px rgba(0,0,0,.28);z-index:1400;display:flex;flex-direction:column;overflow:hidden;animation:fadeSlideUp .3s cubic-bezier(.16,1,.3,1);}
+.help-panel-header{background:#0C2D4A;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.help-panel-header strong{font-size:.95rem;}
+.help-panel-header button{background:transparent;border:none;color:#fff;font-size:1.2rem;cursor:pointer;line-height:1;}
+.help-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#f7f7f7;}
+.help-msg{max-width:85%;padding:9px 12px;border-radius:12px;font-size:.85rem;line-height:1.4;}
+.help-msg.user{align-self:flex-end;background:var(--gold,#c8932a);color:#fff;border-bottom-right-radius:3px;}
+.help-msg.bot{align-self:flex-start;background:#fff;border:1px solid #e5e5e5;color:#222;border-bottom-left-radius:3px;}
+.help-msg.typing{color:#999;font-style:italic;}
+.help-input-row{display:flex;gap:8px;padding:10px;border-top:1px solid #eee;flex-shrink:0;}
+.help-input-row input{flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:20px;font-size:.85rem;}
+.help-input-row button{background:#0C2D4A;color:#fff;border:none;border-radius:20px;padding:9px 16px;font-size:.85rem;cursor:pointer;}
+@media(max-width:480px){.help-panel{right:16px;left:16px;width:auto;bottom:86px;}.help-fab{right:16px;bottom:16px;}}
 </style>
 </head>
 <body>
 <div id="app"></div>
+<button class="help-fab" onclick="toggleHelp()" aria-label="Help" id="help-fab-btn">💬</button>
+<div id="help-panel" style="display:none"></div>
 <script>
 const SB_URL='https://ddasgqmjtcmhwvxvxgea.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYXNncW1qdGNtaHd2eHZ4Z2VhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5NDY4NTgsImV4cCI6MjA5ODUyMjg1OH0.iigamT5341hbdbz7n-CFjy62adfvq5mWDSNTZ9Rwadk';
@@ -1779,6 +1796,49 @@ function afterRender(){
   }
 }
 init();
+
+// ---- Help chat widget ----
+let helpOpen=false, helpHistory=[];
+function toggleHelp(){
+  helpOpen=!helpOpen;
+  const panel=document.getElementById('help-panel');
+  const btn=document.getElementById('help-fab-btn');
+  if(helpOpen){
+    btn.textContent='✕';
+    panel.style.display='flex';
+    if(!panel.dataset.built){
+      panel.innerHTML=`<div class="help-panel-header"><strong>💬 Portal Help</strong><button onclick="toggleHelp()">✕</button></div>
+        <div class="help-msgs" id="help-msgs"><div class="help-msg bot">Hi! I can help you find your way around the ESigodini VTC Portal — applying, tracking your application, fees, results, voting, or anything else. What do you need help with?</div></div>
+        <div class="help-input-row"><input id="help-input" placeholder="Ask a question..." onkeydown="if(event.key==='Enter')sendHelpMsg()"/><button onclick="sendHelpMsg()">Send</button></div>`;
+      panel.dataset.built='1';
+    }
+    document.getElementById('help-input')?.focus();
+  } else {
+    btn.textContent='💬';
+    panel.style.display='none';
+  }
+}
+async function sendHelpMsg(){
+  const input=document.getElementById('help-input');
+  const msg=input?.value?.trim();
+  if(!msg)return;
+  const msgsEl=document.getElementById('help-msgs');
+  msgsEl.insertAdjacentHTML('beforeend',`<div class="help-msg user">${msg.replace(/</g,'&lt;')}</div>`);
+  input.value='';
+  msgsEl.insertAdjacentHTML('beforeend','<div class="help-msg bot typing" id="help-typing">Typing...</div>');
+  msgsEl.scrollTop=msgsEl.scrollHeight;
+  try{
+    const{data,error}=await sb.functions.invoke('portal-assistant',{body:{message:msg,history:helpHistory}});
+    document.getElementById('help-typing')?.remove();
+    const reply=error?"Sorry, I'm having trouble responding right now. Please try again in a moment.":(data?.reply||data?.error||"Sorry, I couldn't answer that.");
+    msgsEl.insertAdjacentHTML('beforeend',`<div class="help-msg bot">${reply.replace(/</g,'&lt;')}</div>`);
+    helpHistory.push({role:'user',text:msg},{role:'assistant',text:reply});
+  }catch(e){
+    document.getElementById('help-typing')?.remove();
+    msgsEl.insertAdjacentHTML('beforeend','<div class="help-msg bot">Sorry, something went wrong. Please try again.</div>');
+  }
+  msgsEl.scrollTop=msgsEl.scrollHeight;
+}
 
 // ---- Modern gesture layer: ripple feedback + swipe-to-open/close drawer ----
 document.addEventListener('click',function(e){

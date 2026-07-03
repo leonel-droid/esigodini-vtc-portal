@@ -512,7 +512,7 @@ function renderAdmin(){
     ['staff_mgmt','👥','Staff'],['courses','📚','Courses'],['fees','💰','Fee Structure'],
     ['payments','💳','Payments'],['results','📝','Results'],['library','📁','Library'],
     ['latw','🤝','LATW'],['deferments','⏸️','Deferments'],['leave','🗓️','Staff Leave'],
-    ['notices','📢','Notices'],['settings','⚙️','Settings'],['audit','🔍','Audit Log']];
+    ['voting','🗳️','Voting'],['notices','📢','Notices'],['settings','⚙️','Settings'],['audit','🔍','Audit Log']];
   return`${renderNav('Admin Portal')}${S.msg||''}
   <div class="layout">
     <div class="sidebar-backdrop${S.navOpen?' open':''}" onclick="closeNav()"></div>
@@ -525,7 +525,7 @@ function renderAdmin(){
 function renderAdminTab(t){
   const tabs={dashboard:aDash,applications:aApps,accounts:aAccounts,students:aStudents,staff_mgmt:aStaff,
     courses:aCourses,fees:aFees,payments:aPayments,results:aResults,library:aLibrary,
-    latw:aLATW,deferments:aDeferments,leave:aLeave,notices:aNotices,settings:aSettings,audit:aAudit};
+    latw:aLATW,deferments:aDeferments,leave:aLeave,voting:aVoting,notices:aNotices,settings:aSettings,audit:aAudit};
   return(tabs[t]||aDash)();
 }
 // Dashboard
@@ -594,6 +594,110 @@ async function createAccount(){
   if(error||data?.error){showMsg((data&&data.error)||error?.message||'Account creation failed.','error');return;}
   await logAudit(`account.create.${role}`,'profiles',data.user_id,null,{name,email,role});
   showApprovalResult(Object.assign({full_name:name,phone:payload.phone},data));
+}
+// Voting / Elections (admin)
+function aVoting(){return`<div class="page-title">Voting</div>
+  <div class="card">
+    <h2>Create Election Post</h2>
+    <div class="form-row">
+      <div class="form-group"><label>Post Title *</label><input id="ep-title" placeholder="e.g. SRC President"/></div>
+      <div class="form-group"><label>Description</label><input id="ep-desc" placeholder="Optional short description"/></div>
+    </div>
+    <button class="btn btn-primary" onclick="createElectionPost()">+ Create Post</button>
+  </div>
+  <div id="voting-posts-list"><div class="spinner">Loading...</div></div>`;}
+
+async function createElectionPost(){
+  const title=document.getElementById('ep-title')?.value?.trim();
+  if(!title){showMsg('Enter a post title','error');return;}
+  const{error}=await sb.from('election_posts').insert([{title,description:document.getElementById('ep-desc')?.value||null,created_by:S.user.id}]);
+  if(error){showMsg(error.message,'error');return;}
+  showMsg('Post created.');await loadVoting();
+}
+async function toggleElectionPost(id,field,val){
+  await sb.from('election_posts').update({[field]:val}).eq('id',id);
+  await loadVoting();
+}
+async function deleteElectionPost(id){
+  if(!confirm('Delete this post and all its candidates/votes? This cannot be undone.'))return;
+  await sb.from('election_posts').delete().eq('id',id);
+  await loadVoting();
+}
+async function addCandidate(postId){
+  const name=document.getElementById('cand-name-'+postId)?.value?.trim();
+  if(!name){showMsg('Enter candidate name','error');return;}
+  const photo=document.getElementById('cand-photo-'+postId)?.value?.trim()||null;
+  const manifesto=document.getElementById('cand-manifesto-'+postId)?.value?.trim()||null;
+  const{error}=await sb.from('election_candidates').insert([{post_id:postId,full_name:name,photo_url:photo,manifesto}]);
+  if(error){showMsg(error.message,'error');return;}
+  showMsg('Candidate added.');await loadVoting();
+}
+async function deleteCandidate(id){
+  if(!confirm('Remove this candidate?'))return;
+  await sb.from('election_candidates').delete().eq('id',id);
+  await loadVoting();
+}
+async function setManualVotes(id,inputId){
+  const val=parseInt(document.getElementById(inputId)?.value)||0;
+  await sb.from('election_candidates').update({manual_votes:val}).eq('id',id);
+  showMsg('Manual votes updated.');await loadVoting();
+}
+async function loadVoting(){
+  const el=document.getElementById('voting-posts-list');if(!el)return;
+  const{data:posts}=await sb.from('election_posts').select('*').order('created_at',{ascending:false});
+  if(!posts?.length){el.innerHTML='<div class="card"><div class="empty">No election posts yet. Create one above.</div></div>';return;}
+  let html='';
+  for(const p of posts){
+    const{data:cands}=await sb.from('election_candidates').select('*').eq('post_id',p.id).order('created_at');
+    const{data:votes}=await sb.from('election_votes').select('candidate_id').eq('post_id',p.id);
+    const counts={};(votes||[]).forEach(v=>{counts[v.candidate_id]=(counts[v.candidate_id]||0)+1;});
+    const totals=(cands||[]).map(c=>({...c,total:(counts[c.id]||0)+(c.manual_votes||0),automatic:counts[c.id]||0}));
+    const grandTotal=totals.reduce((s,c)=>s+c.total,0)||1;
+    html+=`<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div><h2 style="margin:0">${p.title}</h2><p style="color:var(--grey);margin:4px 0 0">${p.description||''}</p></div>
+        <div class="btn-row">
+          <button class="btn btn-sm ${p.is_active?'btn-primary':'btn-outline'}" onclick="toggleElectionPost('${p.id}','is_active',${!p.is_active})">${p.is_active?'● Active':'○ Inactive'}</button>
+          <button class="btn btn-sm ${p.results_visible?'btn-teal':'btn-outline'}" onclick="toggleElectionPost('${p.id}','results_visible',${!p.results_visible})">${p.results_visible?'👁 Results Visible':'🙈 Results Hidden'}</button>
+          <button class="btn btn-sm btn-outline" onclick="deleteElectionPost('${p.id}')" style="color:#c0392b">Delete Post</button>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        ${totals.map(c=>`<div style="margin-bottom:14px;padding:12px;background:#f9f9f9;border-radius:8px">
+          <div style="display:flex;gap:12px;align-items:center">
+            ${c.photo_url?`<img src="${c.photo_url}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0" alt=""/>`:`<div style="width:48px;height:48px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;flex-shrink:0">👤</div>`}
+            <div style="flex:1;min-width:150px">
+              <strong>${c.full_name}</strong>
+              <div style="font-size:.78rem;color:var(--grey)">${c.manifesto||''}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:700;font-size:1.1rem">${c.total} votes</div>
+              <div style="font-size:.75rem;color:var(--grey)">${c.automatic} auto + ${c.manual_votes||0} manual</div>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="deleteCandidate('${c.id}')" style="color:#c0392b">✕</button>
+          </div>
+          <div style="background:#e5e5e5;border-radius:6px;height:8px;margin-top:8px;overflow:hidden">
+            <div style="background:var(--gold,#c8932a);height:100%;width:${Math.round(c.total/grandTotal*100)}%"></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+            <label style="font-size:.78rem;color:var(--grey)">Manual votes:</label>
+            <input id="mv-${c.id}" type="number" min="0" value="${c.manual_votes||0}" style="width:80px;padding:4px 8px;font-size:.85rem"/>
+            <button class="btn btn-sm btn-outline" onclick="setManualVotes('${c.id}','mv-${c.id}')">Save</button>
+          </div>
+        </div>`).join('')||'<div class="empty">No candidates yet.</div>'}
+      </div>
+      <div style="border-top:1px solid #eee;margin-top:10px;padding-top:14px">
+        <strong style="font-size:.85rem">+ Add Candidate</strong>
+        <div class="form-row" style="margin-top:8px">
+          <div class="form-group"><input id="cand-name-${p.id}" placeholder="Full name"/></div>
+          <div class="form-group"><input id="cand-photo-${p.id}" placeholder="Photo URL (optional)"/></div>
+        </div>
+        <div class="form-group"><input id="cand-manifesto-${p.id}" placeholder="Manifesto / short pitch (optional)"/></div>
+        <button class="btn btn-sm btn-primary" onclick="addCandidate('${p.id}')">Add Candidate</button>
+      </div>
+    </div>`;
+  }
+  el.innerHTML=html;
 }
 // Applications
 function aApps(){return`<div class="page-title">Applications</div>
@@ -1259,7 +1363,7 @@ function renderStudent(){
   const t=S.tab||'home';
   const menu=[['home','🏠','Home'],['results','📝','My Results'],['fees','💰','Fees & Payments'],
     ['library','📁','Library'],['deferment','⏸️','Deferment'],['residence','🏠','Residence Change'],
-    ['notices','📢','Notices'],['account','👤','My Account']];
+    ['vote','🗳️','Vote'],['notices','📢','Notices'],['account','👤','My Account']];
   return`${renderNav('Student Portal')}${S.msg||''}
   <div class="layout">
     <div class="sidebar-backdrop${S.navOpen?' open':''}" onclick="closeNav()"></div>
@@ -1270,7 +1374,7 @@ function renderStudent(){
   </div>`;
 }
 function renderStudentTab(t){
-  const tabs={home:sHome,results:sResults,fees:sFees,library:sLibrary,deferment:sDefer,residence:sResidence,notices:sNotices,account:sAccount};
+  const tabs={home:sHome,results:sResults,fees:sFees,library:sLibrary,deferment:sDefer,residence:sResidence,vote:sVote,notices:sNotices,account:sAccount};
   return(tabs[t]||sHome)();
 }
 function sHome(){return`<div class="page-title">Welcome, ${S.profile?.full_name?.split(' ')[0]||'Student'} 👋</div>
@@ -1292,6 +1396,52 @@ async function loadStuHome(){
       <small style="color:var(--grey)">${fmt(n.created_at)}</small></div>`).join(''):'<div class="empty">No notices.</div>';
   }
 }
+function sVote(){return`<div class="page-title">Vote</div>
+  <div id="vote-list"><div class="spinner">Loading...</div></div>`;}
+async function castVote(postId,candidateId){
+  if(!confirm('Cast your vote for this candidate? This cannot be changed once submitted.'))return;
+  const{data:stu}=await sb.from('students').select('id').eq('profile_id',S.user.id).single();
+  if(!stu){showMsg('Student record not found.','error');return;}
+  const{error}=await sb.from('election_votes').insert([{post_id:postId,candidate_id:candidateId,student_id:stu.id}]);
+  if(error){showMsg(error.message.includes('duplicate')?'You have already voted for this post.':error.message,'error');return;}
+  showMsg('Your vote has been recorded. Thank you!');
+  await loadStuVote();
+}
+async function loadStuVote(){
+  const el=document.getElementById('vote-list');if(!el)return;
+  const{data:stu}=await sb.from('students').select('id').eq('profile_id',S.user.id).single();
+  if(!stu){el.innerHTML='<div class="card"><div class="empty">Student record not found.</div></div>';return;}
+  const{data:posts}=await sb.from('election_posts').select('*').eq('is_active',true).order('created_at',{ascending:false});
+  if(!posts?.length){el.innerHTML='<div class="card"><div class="empty">No active votes at the moment.</div></div>';return;}
+  let html='';
+  for(const p of posts){
+    const{data:cands}=await sb.from('election_candidates').select('*').eq('post_id',p.id).order('created_at');
+    const{data:myVote}=await sb.from('election_votes').select('candidate_id').eq('post_id',p.id).eq('student_id',stu.id).maybeSingle();
+    let tallyHtml='';
+    if(p.results_visible){
+      const{data:votes}=await sb.from('election_votes').select('candidate_id').eq('post_id',p.id);
+      const counts={};(votes||[]).forEach(v=>{counts[v.candidate_id]=(counts[v.candidate_id]||0)+1;});
+      const totals=(cands||[]).map(c=>({...c,total:(counts[c.id]||0)+(c.manual_votes||0)}));
+      const grand=totals.reduce((s,c)=>s+c.total,0)||1;
+      tallyHtml=`<div style="margin-top:14px;border-top:1px solid #eee;padding-top:12px"><strong style="font-size:.85rem">Current Results</strong>
+        ${totals.map(c=>`<div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:.85rem"><span>${c.full_name}</span><span>${c.total} votes</span></div>
+        <div style="background:#e5e5e5;border-radius:6px;height:8px;margin-top:4px;overflow:hidden"><div style="background:var(--teal,#0d6e6e);height:100%;width:${Math.round(c.total/grand*100)}%"></div></div></div>`).join('')}
+      </div>`;
+    }
+    html+=`<div class="card">
+      <h2 style="margin:0">${p.title}</h2><p style="color:var(--grey);margin:4px 0 14px">${p.description||''}</p>
+      ${myVote?`<div class="alert alert-success">✓ You voted for <strong>${cands?.find(c=>c.id===myVote.candidate_id)?.full_name||'a candidate'}</strong>.</div>`:
+      (cands?.length?cands.map(c=>`<div style="display:flex;gap:12px;align-items:center;padding:10px;background:#f9f9f9;border-radius:8px;margin-bottom:10px">
+        ${c.photo_url?`<img src="${c.photo_url}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;flex-shrink:0" alt=""/>`:`<div style="width:52px;height:52px;border-radius:50%;background:#ddd;display:flex;align-items:center;justify-content:center;flex-shrink:0">👤</div>`}
+        <div style="flex:1"><strong>${c.full_name}</strong><div style="font-size:.8rem;color:var(--grey)">${c.manifesto||''}</div></div>
+        <button class="btn btn-primary btn-sm" onclick="castVote('${p.id}','${c.id}')">Vote</button>
+      </div>`).join(''):'<div class="empty">No candidates listed yet.</div>')}
+      ${tallyHtml}
+    </div>`;
+  }
+  el.innerHTML=html;
+}
+
 function sResults(){return`<div class="page-title">My Results</div>
   <div id="results-lock-check"><div class="spinner">Checking access...</div></div>`;}
 async function loadStuResults(){
@@ -1618,10 +1768,10 @@ function afterRender(){
   const t=S.tab||'';
   const role=S.profile?.role;
   if(role==='admin'){
-    const loaders={dashboard:loadDash,applications:loadApps,accounts:()=>loadCoursesInto('ra-course'),students:loadStudents,staff_mgmt:loadAdminStaff,courses:loadCourses,fees:loadFees,payments:loadPayments,results:loadResults,library:loadLibrary,latw:loadLATW,deferments:loadDeferments,leave:loadLeave,notices:loadNotices,settings:loadSettings,audit:loadAudit};
+    const loaders={dashboard:loadDash,applications:loadApps,accounts:()=>loadCoursesInto('ra-course'),students:loadStudents,staff_mgmt:loadAdminStaff,courses:loadCourses,fees:loadFees,payments:loadPayments,results:loadResults,library:loadLibrary,latw:loadLATW,deferments:loadDeferments,leave:loadLeave,voting:loadVoting,notices:loadNotices,settings:loadSettings,audit:loadAudit};
     const fn=loaders[t||'dashboard'];if(fn)fn();
   } else if(role==='student'){
-    const loaders={home:loadStuHome,results:loadStuResults,fees:loadStuFees,library:()=>loadStuLibrary('all'),deferment:loadStuDefer,notices:loadStuNotices,account:loadStuAccount};
+    const loaders={home:loadStuHome,results:loadStuResults,fees:loadStuFees,library:()=>loadStuLibrary('all'),deferment:loadStuDefer,notices:loadStuNotices,account:loadStuAccount,vote:loadStuVote};
     const fn=loaders[t||'home'];if(fn)fn();
   } else if(role==='staff'){
     const loaders={results:loadResults,library:loadLibrary,leave:loadStaffLeave,notices:loadStuNotices,profile:loadStaffProfile};

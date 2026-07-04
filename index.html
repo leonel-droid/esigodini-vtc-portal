@@ -117,7 +117,10 @@ tr:hover td{background:#fafafa;}
 .stat:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 12px 24px rgba(0,0,0,.14);}
 .course-card{transition:transform .25s ease,box-shadow .25s ease;}
 .course-card:hover{transform:translateY(-5px);box-shadow:0 16px 32px rgba(0,0,0,.16);}
-.sidebar a{position:relative;overflow:hidden;}
+.sidebar a{position:relative;overflow:hidden;display:flex;align-items:center;gap:10px;}
+.nav-icon{flex-shrink:0;opacity:.85;transition:opacity .2s ease,transform .2s ease;}
+.sidebar a:hover .nav-icon,.sidebar a.active .nav-icon{opacity:1;transform:scale(1.08);}
+.btn-row .nav-icon{margin-right:4px;vertical-align:-3px;}
 .sidebar a::before{content:'';position:absolute;left:0;top:50%;width:3px;height:0;background:var(--gold);transform:translateY(-50%);transition:height .25s ease;}
 .sidebar a:hover::before,.sidebar a.active::before{height:70%;}
 .sidebar a:active{background:rgba(255,255,255,.14);}
@@ -245,6 +248,35 @@ function LOGO(size){
 function toggleNav(){S.navOpen=!S.navOpen;render();}
 function closeNav(){if(S.navOpen){S.navOpen=false;render();}}
 
+// ---- Line-icon set (replaces emoji for a cleaner, more professional look) ----
+const ICON_PATHS={
+  dashboard:'<rect x="3" y="10" width="4" height="11" rx="1"/><rect x="10" y="6" width="4" height="15" rx="1"/><rect x="17" y="13" width="4" height="8" rx="1"/>',
+  applications:'<path d="M8 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>',
+  accounts:'<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/>',
+  students:'<path d="M2 9l10-5 10 5-10 5-10-5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/><line x1="22" y1="9" x2="22" y2="15"/>',
+  staff:'<circle cx="8" cy="8" r="3.5"/><circle cx="17" cy="9" r="3"/><path d="M2 21c0-3.5 2.7-6 6-6s6 2.5 6 6"/><path d="M14.5 21c0-2.8-1-5-3-6.3"/>',
+  courses:'<path d="M2 5c3-1.5 6-1.5 9 0v14c-3-1.5-6-1.5-9 0V5z"/><path d="M22 5c-3-1.5-6-1.5-9 0v14c3-1.5 6-1.5 9 0V5z"/>',
+  fees:'<circle cx="12" cy="12" r="9"/><line x1="12" y1="7" x2="12" y2="17"/><path d="M9.5 15c0 1.2 1.1 2 2.5 2s2.5-.8 2.5-2-1-1.7-2.5-2-2.5-.8-2.5-2 1.1-2 2.5-2 2.5.8 2.5 2"/>',
+  payments:'<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/>',
+  results:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"/><path d="M14 3v5h5"/><polyline points="9 14 11 16 15 12"/>',
+  library:'<path d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>',
+  latw:'<rect x="2" y="8" width="20" height="12" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="2" y1="13" x2="22" y2="13"/>',
+  deferments:'<circle cx="12" cy="12" r="9"/><line x1="10" y1="9" x2="10" y2="15"/><line x1="14" y1="9" x2="14" y2="15"/>',
+  leave:'<rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/>',
+  voting:'<rect x="3" y="8" width="18" height="12" rx="1.5"/><path d="M3 8l9-5 9 5"/><polyline points="9 13 11.5 15.5 16 11"/>',
+  notices:'<path d="M12 3a6 6 0 0 0-6 6v4l-2 4h16l-2-4V9a6 6 0 0 0-6-6z"/><path d="M9.5 21a2.5 2.5 0 0 0 5 0"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V19a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 17.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 13a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 7a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/>',
+  audit:'<circle cx="10.5" cy="10.5" r="7"/><line x1="20" y1="20" x2="15.5" y2="15.5"/>',
+  home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><rect x="9.5" y="14" width="5" height="6"/>',
+  account:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>',
+  residence:'<rect x="5" y="3" width="14" height="18" rx="1"/><line x1="9" y1="7" x2="9" y2="7.01"/><line x1="15" y1="7" x2="15" y2="7.01"/><line x1="9" y1="11" x2="9" y2="11.01"/><line x1="15" y1="11" x2="15" y2="11.01"/><rect x="9.5" y="15" width="5" height="6"/>',
+  bolt:'<polygon points="13 2 3 14 11 14 10 22 21 9 13 9 13 2"/>',
+};
+function ICON(name,size){
+  size=size||18;
+  return `<svg class="nav-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON_PATHS[name]||ICON_PATHS.dashboard}</svg>`;
+}
+
 // ---- PDF receipt generation ----
 function downloadReceipt(p){
   try{
@@ -341,14 +373,15 @@ function renderPublicSite(){
     <div class="links">
       <button onclick="nav('track')">Track Application</button>
       <button onclick="nav('login')" style="background:rgba(255,255,255,.15)">Login</button>
-      <button onclick="nav('apply')" class="btn-apply">Apply Now</button>
+      <button onclick="nav('apply')" class="btn-apply" id="nav-apply-btn">Apply Now</button>
     </div>
   </div>
   <div class="public-hero">
     <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px">${LOGO(70)}<h1 style="margin:0">ESigodini VTC</h1></div>
     <p>Vocational Training Centre — Open to everyone. No qualifications required. Build real skills for real work.</p>
+    <div id="intake-banner"></div>
     <div class="btn-row" style="justify-content:center;margin-top:8px">
-      <button class="btn btn-gold" onclick="nav('apply')">Apply for a Place</button>
+      <button class="btn btn-gold" onclick="nav('apply')" id="hero-apply-btn">Apply for a Place</button>
       <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.4)" onclick="nav('track')">Track My Application</button>
     </div>
   </div>
@@ -357,6 +390,14 @@ function renderPublicSite(){
   <div style="background:var(--navy);color:rgba(255,255,255,.55);text-align:center;padding:16px;font-size:.78rem;margin-top:16px">© 2026 ESigodini VTC · Esigodini, Zimbabwe</div>`;
 }
 async function loadPublicCourses(){
+  const{data:ps}=await sb.from('payment_settings').select('applications_open').order('updated_at',{ascending:false}).limit(1).maybeSingle();
+  const closed=ps?.applications_open===false;
+  const banner=document.getElementById('intake-banner');
+  if(banner)banner.innerHTML=closed?'<div class="alert alert-error" style="max-width:420px;margin:14px auto 0">Applications are currently closed. Please check back later.</div>':'';
+  ['nav-apply-btn','hero-apply-btn'].forEach(id=>{
+    const btn=document.getElementById(id);
+    if(btn && closed){btn.disabled=true;btn.style.opacity='.5';btn.style.cursor='not-allowed';btn.onclick=(e)=>e.preventDefault();btn.textContent=btn.id==='hero-apply-btn'?'Applications Closed':'Closed';}
+  });
   const el=document.getElementById('pub-courses');if(!el)return;
   const{data}=await sb.from('courses').select('*').eq('is_active',true).is('archived_at',null);
   if(!data?.length){el.innerHTML='<div class="empty">No courses listed yet.</div>';return;}
@@ -364,7 +405,7 @@ async function loadPublicCourses(){
     <span class="badge badge-active" style="font-size:.7rem">${(c.track||'standard').replace(/_/g,' ')}</span>
     <h3>${c.name}</h3><p>${c.description||'Vocational skills programme.'}</p>
     <div style="font-size:.76rem;color:var(--grey)">${c.duration_terms?`${c.duration_terms} terms (${c.duration_terms>3?'2-year':'Short'} programme)`:c.duration_weeks?`${c.duration_weeks} weeks`:''}</div>
-    <button class="btn btn-gold btn-sm" style="margin-top:12px;width:100%" onclick="nav('apply')">Apply</button>
+    <button class="btn btn-gold btn-sm" style="margin-top:12px;width:100%" onclick="nav('apply')" ${closed?'disabled style="opacity:.5;cursor:not-allowed"':''}>${closed?'Closed':'Apply'}</button>
   </div>`).join('');
 }
 // ── LOGIN ──────────────────────────────────────────
@@ -395,6 +436,7 @@ function renderPublicApply(){
     <div class="links"><button onclick="nav('public')" style="background:rgba(255,255,255,.15)">← Back</button></div></div>
   <div style="max-width:680px;margin:32px auto;padding:0 16px">
     <div class="card"><h2>Apply for Admission</h2>
+      <div id="apply-form-body">
       <div class="alert alert-info">✅ No qualifications required. Everyone is welcome to apply.</div>
       ${S.msg||''}
       <div class="form-row">
@@ -439,15 +481,25 @@ function renderPublicApply(){
         <button class="btn btn-gold" onclick="submitApp()">Submit Application</button>
         <button class="btn btn-outline" onclick="nav('public')">Cancel</button>
       </div>
+      </div>
     </div>
   </div>`;
 }
 async function loadApplyCourses(){
+  const{data:ps}=await sb.from('payment_settings').select('applications_open').order('updated_at',{ascending:false}).limit(1).maybeSingle();
+  if(ps?.applications_open===false){
+    const body=document.getElementById('apply-form-body');
+    if(body)body.innerHTML=`<div class="alert alert-error">Applications are currently closed. Please check back later, or contact ESigodini VTC directly for more information.</div>
+      <button class="btn btn-outline" onclick="nav('public')">← Back to Home</button>`;
+    return;
+  }
   const{data}=await sb.from('courses').select('id,name,track').eq('is_active',true).is('archived_at',null);
   const sel=document.getElementById('a-course');if(!sel)return;
   sel.innerHTML='<option value="">Select course</option>'+(data||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
 }
 async function submitApp(){
+  const{data:ps}=await sb.from('payment_settings').select('applications_open').order('updated_at',{ascending:false}).limit(1).maybeSingle();
+  if(ps?.applications_open===false){showMsg('Applications are currently closed.','error');return;}
   const name=document.getElementById('a-name')?.value?.trim(),phone=document.getElementById('a-phone')?.value?.trim(),course=document.getElementById('a-course')?.value;
   const nid=document.getElementById('a-nid')?.value?.trim();
   if(!name||!phone||!course){showMsg('Please fill all required fields (*)','error');return;}
@@ -525,16 +577,16 @@ function renderNav(title){
 // ══════════════════════════════════════════════════
 function renderAdmin(){
   const t=S.tab||'dashboard';
-  const menu=[['dashboard','📊','Dashboard'],['applications','📋','Applications'],['accounts','🔑','Register Account'],['students','🎓','Students'],
-    ['staff_mgmt','👥','Staff'],['courses','📚','Courses'],['fees','💰','Fee Structure'],
-    ['payments','💳','Payments'],['results','📝','Results'],['library','📁','Library'],
-    ['latw','🤝','LATW'],['deferments','⏸️','Deferments'],['leave','🗓️','Staff Leave'],
-    ['voting','🗳️','Voting'],['notices','📢','Notices'],['settings','⚙️','Settings'],['audit','🔍','Audit Log']];
+  const menu=[['dashboard','dashboard','Dashboard'],['applications','applications','Applications'],['accounts','accounts','Register Account'],['students','students','Students'],
+    ['staff_mgmt','staff','Staff'],['courses','courses','Courses'],['fees','fees','Fee Structure'],
+    ['payments','payments','Payments'],['results','results','Results'],['library','library','Library'],
+    ['latw','latw','LATW'],['deferments','deferments','Deferments'],['leave','leave','Staff Leave'],
+    ['voting','voting','Voting'],['notices','notices','Notices'],['settings','settings','Settings'],['audit','audit','Audit Log']];
   return`${renderNav('Admin Portal')}${S.msg||''}
   <div class="layout">
     <div class="sidebar-backdrop${S.navOpen?' open':''}" onclick="closeNav()"></div>
     <div class="sidebar${S.navOpen?' open':''}"><div class="s-label">Admin</div>
-      ${menu.map(([id,ic,lb])=>`<a class="${t===id?'active':''}" onclick="setTab('${id}')">${ic} ${lb}</a>`).join('')}
+      ${menu.map(([id,ic,lb])=>`<a class="${t===id?'active':''}" onclick="setTab('${id}')">${ICON(ic)} ${lb}</a>`).join('')}
     </div>
     <div class="main">${renderAdminTab(t)}</div>
   </div>`;
@@ -548,7 +600,7 @@ function renderAdminTab(t){
 // Dashboard
 function aDash(){return`<div class="page-title">Dashboard</div>
   <div class="stat-grid" id="a-stats"><div class="spinner">Loading...</div></div>
-  <div class="card"><h2>⚡ Quick Actions</h2><div class="btn-row">
+  <div class="card"><h2>${ICON('bolt',18)} Quick Actions</h2><div class="btn-row">
     <button class="btn btn-primary" onclick="setTab('applications')">Review Applications</button>
     <button class="btn btn-gold" onclick="setTab('courses')">Manage Courses</button>
     <button class="btn btn-teal" onclick="setTab('fees')">Edit Fees</button>
@@ -1319,6 +1371,9 @@ async function postNotice(){
 async function removeNotice(id){await sb.from('notices').update({is_active:false}).eq('id',id);showMsg('Removed.');await loadNotices();}
 // SETTINGS
 function aSettings(){return`<div class="page-title">Settings</div>
+  <div class="card"><h2>Admissions / Intake</h2>
+    <div id="intake-settings"><div class="spinner">Loading...</div></div>
+  </div>
   <div class="card"><h2>Payment Settings</h2>
     <div id="pay-settings-form"><div class="spinner">Loading...</div></div>
   </div>
@@ -1327,6 +1382,13 @@ function aSettings(){return`<div class="page-title">Settings</div>
   </div>`;}
 async function loadSettings(){
   const{data:ps}=await sb.from('payment_settings').select('*').order('updated_at',{ascending:false}).limit(1).maybeSingle();
+  const inf=document.getElementById('intake-settings');
+  if(inf){
+    const open=ps?.applications_open!==false;
+    inf.innerHTML=`
+      <div class="alert alert-${open?'success':'error'}">${open?'✓ Applications are OPEN — the public can currently apply.':'✕ Applications are CLOSED — the public cannot submit new applications right now.'}</div>
+      <button class="btn ${open?'btn-outline':'btn-primary'}" onclick="toggleIntake(${!open})">${open?'Close Intake':'Open Intake'}</button>`;
+  }
   const pf=document.getElementById('pay-settings-form');
   if(pf)pf.innerHTML=`
     <div class="form-row">
@@ -1354,6 +1416,13 @@ async function savePaySettings(){
   await sb.from('payment_settings').upsert({id:(await sb.from('payment_settings').select('id').limit(1).maybeSingle()).data?.id,ecocash_number:document.getElementById('s-eco')?.value,admin_email:document.getElementById('s-email')?.value,bank_name:document.getElementById('s-bank')?.value,bank_account:document.getElementById('s-acc')?.value,bank_branch:document.getElementById('s-branch')?.value,set_by:S.user.id,updated_at:new Date().toISOString()});
   showMsg('Payment settings saved!');
 }
+async function toggleIntake(newVal){
+  const{data:existing}=await sb.from('payment_settings').select('id').limit(1).maybeSingle();
+  await sb.from('payment_settings').upsert({id:existing?.id,applications_open:newVal,set_by:S.user.id,updated_at:new Date().toISOString()});
+  await logAudit('settings.intake_toggle','payment_settings',existing?.id||'',{applications_open:!newVal},{applications_open:newVal});
+  showMsg(newVal?'Applications are now open.':'Applications are now closed.');
+  await loadSettings();
+}
 async function saveResultSettings(){
   const{data:existing}=await sb.from('payment_settings').select('id').limit(1).maybeSingle();
   await sb.from('payment_settings').upsert({id:existing?.id,min_fee_for_results:parseFloat(document.getElementById('s-min-fee')?.value)||0,results_locked:document.getElementById('s-lock')?.value==='true',set_by:S.user.id,updated_at:new Date().toISOString()});
@@ -1378,14 +1447,14 @@ async function loadAudit(){
 // ══════════════════════════════════════════════════
 function renderStudent(){
   const t=S.tab||'home';
-  const menu=[['home','🏠','Home'],['results','📝','My Results'],['fees','💰','Fees & Payments'],
-    ['library','📁','Library'],['deferment','⏸️','Deferment'],['residence','🏠','Residence Change'],
-    ['vote','🗳️','Vote'],['notices','📢','Notices'],['account','👤','My Account']];
+  const menu=[['home','home','Home'],['results','results','My Results'],['fees','fees','Fees & Payments'],
+    ['library','library','Library'],['deferment','deferments','Deferment'],['residence','residence','Residence Change'],
+    ['vote','voting','Vote'],['notices','notices','Notices'],['account','account','My Account']];
   return`${renderNav('Student Portal')}${S.msg||''}
   <div class="layout">
     <div class="sidebar-backdrop${S.navOpen?' open':''}" onclick="closeNav()"></div>
     <div class="sidebar${S.navOpen?' open':''}"><div class="s-label">Student</div>
-      ${menu.map(([id,ic,lb])=>`<a class="${t===id?'active':''}" onclick="setTab('${id}')">${ic} ${lb}</a>`).join('')}
+      ${menu.map(([id,ic,lb])=>`<a class="${t===id?'active':''}" onclick="setTab('${id}')">${ICON(ic)} ${lb}</a>`).join('')}
     </div>
     <div class="main">${renderStudentTab(t)}</div>
   </div>`;
@@ -1687,12 +1756,12 @@ async function changePw(){
 // ══════════════════════════════════════════════════
 function renderStaff(){
   const t=S.tab||'home';
-  const menu=[['home','🏠','Home'],['results','📝','Enter Results'],['library','📁','Library'],['leave','🗓️','My Leave'],['notices','📢','Notices'],['profile','👤','My Profile']];
+  const menu=[['home','home','Home'],['results','results','Enter Results'],['library','library','Library'],['leave','leave','My Leave'],['notices','notices','Notices'],['profile','account','My Profile']];
   return`${renderNav('Staff Portal')}${S.msg||''}
   <div class="layout">
     <div class="sidebar-backdrop${S.navOpen?' open':''}" onclick="closeNav()"></div>
     <div class="sidebar${S.navOpen?' open':''}"><div class="s-label">Staff</div>
-      ${menu.map(([id,ic,lb])=>`<a class="${t===id?'active':''}" onclick="setTab('${id}')">${ic} ${lb}</a>`).join('')}
+      ${menu.map(([id,ic,lb])=>`<a class="${t===id?'active':''}" onclick="setTab('${id}')">${ICON(ic)} ${lb}</a>`).join('')}
     </div>
     <div class="main">${renderStaffTab(t)}</div>
   </div>`;
@@ -1702,7 +1771,7 @@ function renderStaffTab(t){
   return(tabs[t]||stHome)();
 }
 function stHome(){return`<div class="page-title">Welcome, ${S.profile?.full_name?.split(' ')[0]||'Staff'} 👋</div>
-  <div class="card"><h2>⚡ Quick Actions</h2><div class="btn-row">
+  <div class="card"><h2>${ICON('bolt',18)} Quick Actions</h2><div class="btn-row">
     <button class="btn btn-primary" onclick="setTab('results')">Enter / Edit Results</button>
     <button class="btn btn-gold" onclick="setTab('library')">Upload to Library</button>
     <button class="btn btn-teal" onclick="setTab('leave')">Apply for Leave</button>

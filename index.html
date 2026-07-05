@@ -998,8 +998,8 @@ function aIntakes(){return`<div class="page-title">Intakes</div>
   </div>
   <div class="card"><h2>All Intakes</h2>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Year</th><th>Period</th><th>Label</th><th>Applications</th><th>Active</th><th>Actions</th></tr></thead>
-      <tbody id="a-intakes-tb"><tr><td colspan="6" class="spinner">Loading...</td></tr></tbody>
+      <thead><tr><th>Year</th><th>Period</th><th>Label</th><th>Applications</th><th>Actions</th></tr></thead>
+      <tbody id="a-intakes-tb"><tr><td colspan="5" class="spinner">Loading...</td></tr></tbody>
     </table></div>
   </div>`;}
 async function generateIntakes(){
@@ -1025,7 +1025,6 @@ async function loadIntakes(){
   tb.innerHTML=data.map(i=>`<tr>
     <td>${i.year}</td><td>Intake ${i.period}</td><td>${i.label}</td>
     <td><button class="btn btn-sm ${i.applications_open?'btn-primary':'btn-outline'}" onclick="toggleIntakeField('${i.id}','applications_open',${!i.applications_open})">${i.applications_open?'● Open':'○ Closed'}</button></td>
-    <td><button class="btn btn-sm ${i.is_active?'btn-teal':'btn-outline'}" onclick="toggleIntakeField('${i.id}','is_active',${!i.is_active})">${i.is_active?'Active':'Inactive'}</button></td>
     <td><button class="btn btn-outline btn-sm" onclick="editIntakeLabel('${i.id}','${(i.label||'').replace(/'/g,"&apos;")}')">Rename</button></td>
   </tr>`).join('');
 }

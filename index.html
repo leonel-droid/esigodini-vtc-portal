@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>ESigodini VTC Portal</title>
+<title>Esigodini VTC Portal</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -82,7 +82,13 @@ tr:hover td{background:#fafafa;}
 .course-card p{color:var(--grey);font-size:.82rem;margin-bottom:12px;}
 .page-title{font-size:1.25rem;font-weight:700;color:var(--navy);margin-bottom:20px;}
 .empty{text-align:center;padding:40px;color:var(--grey);font-size:.88rem;}
-.spinner{text-align:center;padding:30px;color:var(--grey);}
+.spinner{text-align:center;padding:30px;color:var(--grey);font-size:.85rem;}
+.spinner::before{content:'';display:block;width:34px;height:34px;margin:0 auto 12px;border-radius:50%;
+  background:conic-gradient(from 0deg, transparent 0%, transparent 55%, var(--gold,#c8932a) 100%);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 4px));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 4px));
+  animation:spinner-rotate .8s linear infinite;}
+@keyframes spinner-rotate{to{transform:rotate(360deg);}}
 .divider{border:none;border-top:1px solid #eee;margin:16px 0;}
 .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;}
 .modal{background:#fff;border-radius:14px;padding:28px;max-width:580px;width:92%;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
@@ -241,7 +247,7 @@ function LOGO(size){
     <circle cx="50" cy="50" r="37" fill="#F7F4EC"/>
     <circle cx="50" cy="50" r="37" fill="none" stroke="rgba(12,45,74,.12)" stroke-width="1"/>
   </svg>
-  <img class="lg-mark" src="${LOGO_IMG}" alt="ESigodini VTC"/>
+  <img class="lg-mark" src="${LOGO_IMG}" alt="Esigodini VTC"/>
   <span class="lg-dot"></span>
   </span>`;
 }
@@ -288,7 +294,7 @@ function downloadReceipt(p){
     try{doc.addImage(LOGO_IMG,'PNG',40,15,60,60);}catch(e){}
     doc.setTextColor(255,255,255);
     doc.setFontSize(18);doc.setFont(undefined,'bold');
-    doc.text('ESigodini VTC',115,42);
+    doc.text('Esigodini VTC',115,42);
     doc.setFontSize(10);doc.setFont(undefined,'normal');
     doc.text('Official Payment Receipt',115,60);
     doc.setTextColor(20,20,20);
@@ -307,7 +313,7 @@ function downloadReceipt(p){
     y+=10;
     doc.setDrawColor(200,200,200);doc.line(40,y,pageW-40,y);y+=30;
     doc.setFontSize(9);doc.setTextColor(120,120,120);
-    doc.text('This is a system-generated receipt from the ESigodini VTC Portal.',40,y);
+    doc.text('This is a system-generated receipt from the Esigodini VTC Portal.',40,y);
     doc.save('Receipt_'+(p.regNumber||'student')+'_'+(p.id?p.id.slice(0,6):'')+'.pdf');
   }catch(err){showMsg('Could not generate PDF: '+err.message,'error');}
 }
@@ -369,7 +375,7 @@ async function logAudit(action,table,id,old_v,new_v){
 // ── PUBLIC ──────────────────────────────────────────
 function renderPublicSite(){
   return`<div class="public-nav">
-    <span class="brand" style="display:flex;align-items:center;gap:10px">${LOGO(40)} ESigodini VTC</span>
+    <span class="brand" style="display:flex;align-items:center;gap:10px">${LOGO(40)} Esigodini VTC</span>
     <div class="links">
       <button onclick="nav('track')">Track Application</button>
       <button onclick="nav('login')" style="background:rgba(255,255,255,.15)">Login</button>
@@ -377,7 +383,7 @@ function renderPublicSite(){
     </div>
   </div>
   <div class="public-hero">
-    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px">${LOGO(70)}<h1 style="margin:0">ESigodini VTC</h1></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px">${LOGO(70)}<h1 style="margin:0">Esigodini VTC</h1></div>
     <p>Vocational Training Centre — Open to everyone. No qualifications required. Build real skills for real work.</p>
     <div id="intake-banner"></div>
     <div class="btn-row" style="justify-content:center;margin-top:8px">
@@ -387,11 +393,11 @@ function renderPublicSite(){
   </div>
   <div style="padding:20px 28px 4px"><h2 style="color:var(--navy);font-size:1.15rem">Available Courses</h2></div>
   <div class="courses-grid" id="pub-courses"><div class="spinner">Loading courses...</div></div>
-  <div style="background:var(--navy);color:rgba(255,255,255,.55);text-align:center;padding:16px;font-size:.78rem;margin-top:16px">© 2026 ESigodini VTC · Esigodini, Zimbabwe</div>`;
+  <div style="background:var(--navy);color:rgba(255,255,255,.55);text-align:center;padding:16px;font-size:.78rem;margin-top:16px">© 2026 Esigodini VTC · Esigodini, Zimbabwe</div>`;
 }
 async function loadPublicCourses(){
-  const{data:ps}=await sb.from('payment_settings').select('applications_open').order('updated_at',{ascending:false}).limit(1).maybeSingle();
-  const closed=ps?.applications_open===false;
+  const{data:intakeOpen}=await sb.rpc('is_intake_open');
+  const closed=intakeOpen===false;
   const banner=document.getElementById('intake-banner');
   if(banner)banner.innerHTML=closed?'<div class="alert alert-error" style="max-width:420px;margin:14px auto 0">Applications are currently closed. Please check back later.</div>':'';
   ['nav-apply-btn','hero-apply-btn'].forEach(id=>{
@@ -411,7 +417,7 @@ async function loadPublicCourses(){
 // ── LOGIN ──────────────────────────────────────────
 function renderLogin(){
   return`<div class="login-wrap"><div class="login-box">
-    <div class="login-logo"><div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px">${LOGO(74)}<h1 style="margin:0">ESigodini VTC</h1></div><p>Student & Staff Portal</p><div class="sub">Sign in to your account</div></div>
+    <div class="login-logo"><div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px">${LOGO(74)}<h1 style="margin:0">Esigodini VTC</h1></div><p>Student & Staff Portal</p><div class="sub">Sign in to your account</div></div>
     ${S.msg||''}
     <div class="form-group"><label>Email</label><input type="email" id="l-email" placeholder="your@email.com"/></div>
     <div class="form-group"><label>Password</label><input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
@@ -432,7 +438,7 @@ async function doLogin(){
 }
 // ── APPLICATION ─────────────────────────────────────
 function renderPublicApply(){
-  return`<div class="public-nav"><span class="brand" style="display:flex;align-items:center;gap:10px">${LOGO(40)} ESigodini VTC</span>
+  return`<div class="public-nav"><span class="brand" style="display:flex;align-items:center;gap:10px">${LOGO(40)} Esigodini VTC</span>
     <div class="links"><button onclick="nav('public')" style="background:rgba(255,255,255,.15)">← Back</button></div></div>
   <div style="max-width:680px;margin:32px auto;padding:0 16px">
     <div class="card"><h2>Apply for Admission</h2>
@@ -451,13 +457,14 @@ function renderPublicApply(){
       <div class="form-group"><label>Home Address</label><input id="a-addr" placeholder="Your address"/></div>
       <div class="form-row">
         <div class="form-group"><label>Course *</label><select id="a-course"><option value="">Loading...</option></select></div>
-        <div class="form-group"><label>Enrolment Type *</label>
+        <div class="form-group"><label>Intake *</label><select id="a-intake"><option value="">Loading...</option></select></div>
+      </div>
+      <div class="form-group"><label>Enrolment Type *</label>
           <select id="a-track">
             <option value="standard">Standard (Pay Fees)</option>
             <option value="latw">Learn As You Work</option>
             <option value="short_course">Short Course</option>
           </select></div>
-      </div>
       <div class="form-group"><label>Accommodation *</label>
         <select id="a-res"><option value="day">Day Student</option><option value="boarding">Boarding Student</option></select>
       </div>
@@ -486,27 +493,40 @@ function renderPublicApply(){
   </div>`;
 }
 async function loadApplyCourses(){
-  const{data:ps}=await sb.from('payment_settings').select('applications_open').order('updated_at',{ascending:false}).limit(1).maybeSingle();
-  if(ps?.applications_open===false){
+  const{data:intakeOpen}=await sb.rpc('is_intake_open');
+  if(intakeOpen===false){
     const body=document.getElementById('apply-form-body');
-    if(body)body.innerHTML=`<div class="alert alert-error">Applications are currently closed. Please check back later, or contact ESigodini VTC directly for more information.</div>
+    if(body)body.innerHTML=`<div class="alert alert-error">Applications are currently closed. Please check back later, or contact Esigodini VTC directly for more information.</div>
       <button class="btn btn-outline" onclick="nav('public')">← Back to Home</button>`;
     return;
   }
   const{data}=await sb.from('courses').select('id,name,track').eq('is_active',true).is('archived_at',null);
   const sel=document.getElementById('a-course');if(!sel)return;
   sel.innerHTML='<option value="">Select course</option>'+(data||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+
+  const{data:intakes}=await sb.rpc('get_open_intakes');
+  const isel=document.getElementById('a-intake');
+  if(isel){
+    isel.innerHTML='<option value="">Select intake</option>'+(intakes||[]).map(i=>
+      `<option value="${i.id}" ${i.applications_open?'':'disabled'}>${i.label}${i.applications_open?'':' (Closed)'}</option>`
+    ).join('');
+  }
 }
 async function submitApp(){
-  const{data:ps}=await sb.from('payment_settings').select('applications_open').order('updated_at',{ascending:false}).limit(1).maybeSingle();
-  if(ps?.applications_open===false){showMsg('Applications are currently closed.','error');return;}
+  const{data:intakeOpen}=await sb.rpc('is_intake_open');
+  if(intakeOpen===false){showMsg('Applications are currently closed.','error');return;}
   const name=document.getElementById('a-name')?.value?.trim(),phone=document.getElementById('a-phone')?.value?.trim(),course=document.getElementById('a-course')?.value;
+  const intakeId=document.getElementById('a-intake')?.value;
   const nid=document.getElementById('a-nid')?.value?.trim();
   if(!name||!phone||!course){showMsg('Please fill all required fields (*)','error');return;}
+  if(!intakeId){showMsg('Please select an intake.','error');return;}
   if(!nid){showMsg('National ID is required so you can track your application later.','error');return;}
+  const{data:intakes}=await sb.rpc('get_open_intakes');
+  const chosen=(intakes||[]).find(i=>i.id===intakeId);
+  if(!chosen?.applications_open){showMsg('That intake is closed. Please select an open intake.','error');return;}
   const qual=document.getElementById('a-qual')?.value||null;
   const qualOther=qual==='other'?document.getElementById('a-qual-other')?.value?.trim():null;
-  const{data,error}=await sb.from('applications').insert([{full_name:name,dob:document.getElementById('a-dob')?.value||null,national_id:nid,phone,email:document.getElementById('a-email')?.value||null,address:document.getElementById('a-addr')?.value||null,course_id:course,track:document.getElementById('a-track')?.value,residence:document.getElementById('a-res')?.value,qualification:qual,qualification_other:qualOther,status:'pending'}]).select().single();
+  const{data,error}=await sb.from('applications').insert([{full_name:name,dob:document.getElementById('a-dob')?.value||null,national_id:nid,phone,email:document.getElementById('a-email')?.value||null,address:document.getElementById('a-addr')?.value||null,course_id:course,intake_id:intakeId,track:document.getElementById('a-track')?.value,residence:document.getElementById('a-res')?.value,qualification:qual,qualification_other:qualOther,status:'pending'}]).select().single();
   if(error){showMsg(error.message,'error');return;}
   S.page='applied';S.data.appId=data.id;render();
 }
@@ -523,7 +543,7 @@ function renderApplied(){
 function renderTrackStatus(){
   const mode=S.data.trackMode||'ref';
   return`<div class="login-wrap"><div class="login-box">
-    <div class="login-logo"><div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px">${LOGO(74)}<h1 style="margin:0">ESigodini VTC</h1></div><p>Application Status</p></div>
+    <div class="login-logo"><div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px">${LOGO(74)}<h1 style="margin:0">Esigodini VTC</h1></div><p>Application Status</p></div>
     ${S.msg||''}
     ${S.data.trackResult?`<div class="alert alert-${S.data.trackResult.status==='approved'?'success':S.data.trackResult.status==='rejected'?'error':'info'}">
       <strong>Status: ${S.data.trackResult.status?.toUpperCase()}</strong><br>
@@ -567,7 +587,7 @@ function renderNav(title){
     <div style="display:flex;align-items:center;gap:10px">
       <button class="menu-toggle" onclick="toggleNav()" aria-label="Menu">☰</button>
       ${LOGO(42)}
-      <div><div class="brand-title" style="color:#fff">ESigodini VTC</div><div class="brand-sub">${title}</div></div>
+      <div><div class="brand-title" style="color:#fff">Esigodini VTC</div><div class="brand-sub">${title}</div></div>
     </div>
     <div class="nav-user"><span>👤 ${S.profile?.full_name||''}</span><button class="btn-logout" onclick="logout()">Sign out</button></div>
   </div>`;
@@ -578,8 +598,8 @@ function renderNav(title){
 function renderAdmin(){
   const t=S.tab||'dashboard';
   const menu=[['dashboard','dashboard','Dashboard'],['applications','applications','Applications'],['accounts','accounts','Register Account'],['students','students','Students'],
-    ['staff_mgmt','staff','Staff'],['courses','courses','Courses'],['fees','fees','Fee Structure'],
-    ['payments','payments','Payments'],['results','results','Results'],['library','library','Library'],
+    ['staff_mgmt','staff','Staff'],['courses','courses','Courses'],['intakes','deferments','Intakes'],['fees','fees','Fee Structure'],
+    ['payments','payments','Payments'],['fee_ledger','fees','Fee Ledger'],['fee_stats','fees','Fee Statistics'],['results','results','Results'],['result_stats','results','Result Statistics'],['library','library','Library'],
     ['latw','latw','LATW'],['deferments','deferments','Deferments'],['leave','leave','Staff Leave'],
     ['voting','voting','Voting'],['notices','notices','Notices'],['settings','settings','Settings'],['audit','audit','Audit Log']];
   return`${renderNav('Admin Portal')}${S.msg||''}
@@ -593,7 +613,7 @@ function renderAdmin(){
 }
 function renderAdminTab(t){
   const tabs={dashboard:aDash,applications:aApps,accounts:aAccounts,students:aStudents,staff_mgmt:aStaff,
-    courses:aCourses,fees:aFees,payments:aPayments,results:aResults,library:aLibrary,
+    courses:aCourses,intakes:aIntakes,fees:aFees,payments:aPayments,fee_ledger:aFeeLedger,fee_stats:aFeeStats,results:aResults,result_stats:aResultStats,library:aLibrary,
     latw:aLATW,deferments:aDeferments,leave:aLeave,voting:aVoting,notices:aNotices,settings:aSettings,audit:aAudit};
   return(tabs[t]||aDash)();
 }
@@ -799,7 +819,7 @@ async function approveApp(id){
   await loadApps();
 }
 function showApprovalResult(data){
-  const waMsg=encodeURIComponent(`Congratulations ${data.full_name}! Your application to ESigodini VTC has been ACCEPTED.\nRegistration Number: ${data.reg_number}\nLogin email: ${data.email}\nTemporary password: ${data.temp_password}\nPlease log in and change your password: ${window.location.origin}`);
+  const waMsg=encodeURIComponent(`Congratulations ${data.full_name}! Your application to Esigodini VTC has been ACCEPTED.\nRegistration Number: ${data.reg_number}\nLogin email: ${data.email}\nTemporary password: ${data.temp_password}\nPlease log in and change your password: ${window.location.origin}`);
   const waLink=data.phone?`https://wa.me/${data.phone.replace(/[^0-9]/g,'')}?text=${waMsg}`:null;
   document.getElementById('stu-modal')?.remove();
   document.body.insertAdjacentHTML('beforeend',`<div id="approval-modal"></div>`);
@@ -923,8 +943,33 @@ async function loadAdminStaff(){
     <td><strong>${s.profiles?.full_name||'-'}</strong><br><small style="color:var(--grey)">${s.profiles?.email||''}</small></td>
     <td>${s.position||'-'}</td><td style="max-width:200px">${s.qualifications||'-'}</td>
     <td>${fmt(s.date_joined)}</td><td>${s.phone||'-'}</td>
-    <td><button class="btn btn-outline btn-sm" onclick="viewStaffDetail('${encodeURIComponent(JSON.stringify(s))}')">View Details</button></td>
+    <td><button class="btn btn-outline btn-sm" onclick="viewStaffDetail('${encodeURIComponent(JSON.stringify(s))}')">View Details</button>
+      <button class="btn btn-outline btn-sm" onclick="showAssignCourses('${s.id}','${(s.profiles?.full_name||'').replace(/'/g,"&apos;")}')">Assign Courses</button></td>
   </tr>`).join('');
+}
+async function showAssignCourses(staffId,staffName){
+  const{data:courses}=await sb.from('courses').select('id,name').eq('is_active',true);
+  const{data:assigned}=await sb.from('staff_courses').select('course_id').eq('staff_id',staffId);
+  const assignedIds=new Set((assigned||[]).map(a=>a.course_id));
+  document.getElementById('stu-modal')?.remove();
+  document.body.insertAdjacentHTML('beforeend','<div id="stu-modal"></div>');
+  document.getElementById('stu-modal').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)this.remove()">
+    <div class="modal"><h3>Assign Courses — ${staffName}</h3>
+      <p style="font-size:.82rem;color:var(--grey)">This controls which courses this staff member can enter results for, and which statistics they can see.</p>
+      ${(courses||[]).map(c=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 0">
+        <input type="checkbox" value="${c.id}" class="assign-course-cb" ${assignedIds.has(c.id)?'checked':''}/> ${c.name}
+      </label>`).join('')||'<div class="empty">No courses yet.</div>'}
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn btn-primary" onclick="saveAssignedCourses('${staffId}')">Save</button>
+        <button class="btn btn-outline" onclick="document.getElementById('stu-modal').remove()">Cancel</button>
+      </div></div></div>`;
+}
+async function saveAssignedCourses(staffId){
+  const checked=[...document.querySelectorAll('.assign-course-cb:checked')].map(cb=>cb.value);
+  await sb.from('staff_courses').delete().eq('staff_id',staffId);
+  if(checked.length)await sb.from('staff_courses').insert(checked.map(course_id=>({staff_id:staffId,course_id})));
+  await logAudit('staff.assign_courses','staff_courses',staffId,null,{courses:checked});
+  showMsg('Course assignments saved.');document.getElementById('stu-modal').remove();
 }
 function viewStaffDetail(raw){
   const s=JSON.parse(decodeURIComponent(raw));
@@ -944,23 +989,74 @@ function viewStaffDetail(raw){
       <button class="btn btn-outline" style="margin-top:16px" onclick="document.getElementById('stu-modal').innerHTML=''">Close</button>
     </div></div>`;
 }
+// INTAKES
+function aIntakes(){return`<div class="page-title">Intakes</div>
+  <div class="card">
+    <h2>Intake Management</h2>
+    <p style="font-size:.85rem;color:var(--grey)">Esigodini VTC runs 3 intakes per year. Generate the current and next year's intakes below, then control which ones are open for applications.</p>
+    <button class="btn btn-primary btn-sm" onclick="generateIntakes()">+ Generate Next 2 Years of Intakes</button>
+  </div>
+  <div class="card"><h2>All Intakes</h2>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Year</th><th>Period</th><th>Label</th><th>Applications</th><th>Active</th><th>Actions</th></tr></thead>
+      <tbody id="a-intakes-tb"><tr><td colspan="6" class="spinner">Loading...</td></tr></tbody>
+    </table></div>
+  </div>`;}
+async function generateIntakes(){
+  const y=new Date().getFullYear();
+  const rows=[];
+  for(const yr of [y,y+1]){
+    for(const period of [1,2,3]){
+      rows.push({year:yr,period,label:`${yr} Intake ${period}`,is_active:true,applications_open:false});
+    }
+  }
+  // Skip any that already exist
+  const{data:existing}=await sb.from('intakes').select('year,period');
+  const existSet=new Set((existing||[]).map(e=>`${e.year}-${e.period}`));
+  const toInsert=rows.filter(r=>!existSet.has(`${r.year}-${r.period}`));
+  if(!toInsert.length){showMsg('All intakes for this window already exist.');await loadIntakes();return;}
+  await sb.from('intakes').insert(toInsert);
+  showMsg(`Generated ${toInsert.length} new intake(s).`);await loadIntakes();
+}
+async function loadIntakes(){
+  const tb=document.getElementById('a-intakes-tb');if(!tb)return;
+  const{data}=await sb.from('intakes').select('*').order('year',{ascending:false}).order('period',{ascending:false});
+  if(!data?.length){tb.innerHTML='<tr><td colspan="6" class="empty">No intakes yet. Click "Generate" above.</td></tr>';return;}
+  tb.innerHTML=data.map(i=>`<tr>
+    <td>${i.year}</td><td>Intake ${i.period}</td><td>${i.label}</td>
+    <td><button class="btn btn-sm ${i.applications_open?'btn-primary':'btn-outline'}" onclick="toggleIntakeField('${i.id}','applications_open',${!i.applications_open})">${i.applications_open?'● Open':'○ Closed'}</button></td>
+    <td><button class="btn btn-sm ${i.is_active?'btn-teal':'btn-outline'}" onclick="toggleIntakeField('${i.id}','is_active',${!i.is_active})">${i.is_active?'Active':'Inactive'}</button></td>
+    <td><button class="btn btn-outline btn-sm" onclick="editIntakeLabel('${i.id}','${(i.label||'').replace(/'/g,"&apos;")}')">Rename</button></td>
+  </tr>`).join('');
+}
+async function toggleIntakeField(id,field,val){
+  await sb.from('intakes').update({[field]:val}).eq('id',id);
+  await logAudit('intake.'+field,'intakes',id,null,{[field]:val});
+  await loadIntakes();
+}
+async function editIntakeLabel(id,current){
+  const label=prompt('Intake label:',current);if(label===null)return;
+  await sb.from('intakes').update({label}).eq('id',id);
+  await loadIntakes();
+}
 // COURSES
 function aCourses(){return`<div class="page-title">Courses</div>
   <div class="card"><h2>Manage Courses</h2>
     <button class="btn btn-primary btn-sm" style="margin-bottom:14px" onclick="showCourseModal()">+ Add Course</button>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Course</th><th>Track</th><th>Duration</th><th>Status</th><th>Actions</th></tr></thead>
-      <tbody id="a-courses-tb"><tr><td colspan="5" class="spinner">Loading...</td></tr></tbody>
+      <thead><tr><th>Course</th><th>Track</th><th>Duration</th><th>CW / Theory</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="a-courses-tb"><tr><td colspan="6" class="spinner">Loading...</td></tr></tbody>
     </table></div>
   </div><div id="course-modal"></div>`;}
 async function loadCourses(){
   const tb=document.getElementById('a-courses-tb');if(!tb)return;
   const{data}=await sb.from('courses').select('*').order('created_at',{ascending:false});
-  if(!data?.length){tb.innerHTML='<tr><td colspan="5" class="empty">No courses yet.</td></tr>';return;}
+  if(!data?.length){tb.innerHTML='<tr><td colspan="6" class="empty">No courses yet.</td></tr>';return;}
   tb.innerHTML=data.map(c=>`<tr>
     <td><strong>${c.name}</strong><br><small style="color:var(--grey)">${c.description||''}</small></td>
     <td>${badge(c.track)}</td>
     <td>${c.duration_terms?`${c.duration_terms} terms`:c.duration_weeks?`${c.duration_weeks} weeks`:'-'}</td>
+    <td>${c.coursework_weight!=null?c.coursework_weight:40}% / ${c.theory_weight!=null?c.theory_weight:60}%</td>
     <td>${c.archived_at?'<span class="badge badge-rejected">Archived</span>':badge(c.is_active?'active':'pending')}</td>
     <td class="btn-row">
       <button class="btn btn-outline btn-sm" onclick="showCourseModal('${c.id}','${encodeURIComponent(JSON.stringify(c))}')">Edit</button>
@@ -982,15 +1078,28 @@ function showCourseModal(id,raw){
         <div class="form-group"><label>Duration (Terms)</label><input id="c-terms" type="number" value="${c.duration_terms||''}" placeholder="e.g. 6"/></div>
       </div>
       <div class="form-group"><label>Duration (Weeks — short courses)</label><input id="c-weeks" type="number" value="${c.duration_weeks||''}"/></div>
+      <div class="form-row">
+        <div class="form-group"><label>Coursework Weight (%)</label><input id="c-cw-weight" type="number" min="0" max="100" value="${c.coursework_weight!=null?c.coursework_weight:40}" oninput="syncWeights('cw')"/></div>
+        <div class="form-group"><label>Theory Weight (%)</label><input id="c-th-weight" type="number" min="0" max="100" value="${c.theory_weight!=null?c.theory_weight:60}" oninput="syncWeights('th')"/></div>
+      </div>
+      <p style="font-size:.78rem;color:var(--grey)">These two must add up to 100%. Changing one auto-adjusts the other.</p>
       <div class="btn-row">
         <button class="btn btn-primary" onclick="saveCourse('${id||''}')">Save</button>
         <button class="btn btn-outline" onclick="document.getElementById('course-modal').innerHTML=''">Cancel</button>
       </div></div></div>`;
 }
+function syncWeights(changed){
+  const cw=document.getElementById('c-cw-weight'),th=document.getElementById('c-th-weight');
+  if(!cw||!th)return;
+  if(changed==='cw')th.value=Math.max(0,100-parseFloat(cw.value||0));
+  else cw.value=Math.max(0,100-parseFloat(th.value||0));
+}
 async function saveCourse(id){
   const name=document.getElementById('c-name')?.value?.trim();
   if(!name){showMsg('Course name required','error');return;}
-  const payload={name,description:document.getElementById('c-desc')?.value?.trim(),track:document.getElementById('c-track')?.value,duration_terms:parseInt(document.getElementById('c-terms')?.value)||null,duration_weeks:parseInt(document.getElementById('c-weeks')?.value)||null,created_by:S.user.id};
+  const cw=parseFloat(document.getElementById('c-cw-weight')?.value)||0,th=parseFloat(document.getElementById('c-th-weight')?.value)||0;
+  if(Math.round(cw+th)!==100){showMsg('Coursework + Theory weights must add up to 100%','error');return;}
+  const payload={name,description:document.getElementById('c-desc')?.value?.trim(),track:document.getElementById('c-track')?.value,duration_terms:parseInt(document.getElementById('c-terms')?.value)||null,duration_weeks:parseInt(document.getElementById('c-weeks')?.value)||null,coursework_weight:cw,theory_weight:th,created_by:S.user.id};
   if(id)await sb.from('courses').update(payload).eq('id',id);
   else await sb.from('courses').insert([payload]);
   await logAudit(id?'course.update':'course.create','courses',id,null,payload);
@@ -1002,6 +1111,160 @@ async function archiveCourse(id){
   showMsg('Course archived.');await loadCourses();
 }
 // FEES
+// FEE LEDGER
+function aFeeLedger(){return`<div class="page-title">Fee Ledger</div>
+  <div class="card">
+    <h2>Look Up a Student</h2>
+    <div class="form-row">
+      <div class="form-group"><label>Registration Number</label><input id="fl-reg" placeholder="EVTC-2026-0001"/></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="loadFeeLedgerFor()">Look Up</button>
+  </div>
+  <div id="fee-ledger-result"></div>`;}
+async function loadFeeLedgerPage(){/* nothing to preload */}
+async function loadFeeLedgerFor(){
+  const reg=document.getElementById('fl-reg')?.value?.trim().toUpperCase();
+  const el=document.getElementById('fee-ledger-result');
+  if(!reg||!el)return;
+  el.innerHTML='<div class="card"><div class="spinner">Loading...</div></div>';
+  const{data:stu}=await sb.from('students').select('id,reg_number,profiles(full_name)').eq('reg_number',reg).maybeSingle();
+  if(!stu){el.innerHTML='<div class="card"><div class="empty">Student not found.</div></div>';return;}
+  const{data:ledger}=await sb.from('fee_ledger').select('*,terms(term_number,term_type)').eq('student_id',stu.id).order('created_at');
+  const totalBalance=(ledger||[]).reduce((s,l)=>s+parseFloat(l.balance||0),0);
+  el.innerHTML=`<div class="card">
+    <h2>${stu.profiles?.full_name||'-'} <small style="color:var(--grey)">(${stu.reg_number})</small></h2>
+    <div class="alert alert-${totalBalance>0?'error':'success'}">Total Outstanding: <strong>$${totalBalance.toFixed(2)}</strong>${totalBalance<0?' (credit)':''}</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Term</th><th>Opening Balance</th><th>Billed</th><th>Paid</th><th>Balance</th></tr></thead>
+      <tbody>${(ledger||[]).map(l=>`<tr>
+        <td>T${l.terms?.term_number||'-'}</td>
+        <td>$${parseFloat(l.opening_balance||0).toFixed(2)}</td>
+        <td>$${parseFloat(l.billed||0).toFixed(2)}</td>
+        <td>$${parseFloat(l.paid||0).toFixed(2)}</td>
+        <td><strong>$${parseFloat(l.balance||0).toFixed(2)}</strong></td>
+      </tr>`).join('')||'<tr><td colspan="5" class="empty">No ledger entries yet for this student.</td></tr>'}</tbody>
+    </table></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-outline btn-sm" onclick='downloadStatement(${JSON.stringify({studentName:stu.profiles?.full_name,regNumber:stu.reg_number,ledger:(ledger||[]).map(l=>({term:l.terms?.term_number,opening:l.opening_balance,billed:l.billed,paid:l.paid,balance:l.balance})),totalBalance}).replace(/'/g,"&apos;")})'>📄 Download Full Statement</button>
+      <button class="btn btn-outline btn-sm" onclick="adjustLedger('${stu.id}')">Manual Adjustment</button>
+    </div>
+  </div>`;
+}
+async function adjustLedger(studentId){
+  const{data:terms}=await sb.from('fee_ledger').select('id,terms(term_number)').eq('student_id',studentId).order('created_at',{ascending:false}).limit(1);
+  if(!terms?.length){showMsg('This student has no ledger entries yet — a payment or term needs to be created first.','error');return;}
+  const amt=prompt('Adjustment amount (positive = add to balance owed, negative = reduce/credit):');
+  if(amt===null||isNaN(amt))return;
+  const reason=prompt('Reason for this adjustment (for the audit log):')||'';
+  const ledgerId=terms[0].id;
+  const{data:cur}=await sb.from('fee_ledger').select('balance').eq('id',ledgerId).single();
+  const newBalance=parseFloat(cur.balance||0)+parseFloat(amt);
+  await sb.from('fee_ledger').update({balance:newBalance,updated_at:new Date().toISOString()}).eq('id',ledgerId);
+  await logAudit('fee_ledger.manual_adjustment','fee_ledger',ledgerId,{balance:cur.balance},{balance:newBalance,reason});
+  showMsg('Ledger adjusted.');await loadFeeLedgerFor();
+}
+function downloadStatement(data){
+  try{
+    const{jsPDF}=window.jspdf;
+    const doc=new jsPDF({unit:'pt',format:'a4'});
+    const pageW=doc.internal.pageSize.getWidth();
+    doc.setFillColor(12,45,74);doc.rect(0,0,pageW,80,'F');
+    try{doc.addImage(LOGO_IMG,'PNG',40,12,56,56);}catch(e){}
+    doc.setTextColor(255,255,255);doc.setFontSize(16);doc.setFont(undefined,'bold');
+    doc.text('Esigodini VTC — Fee Statement',110,38);
+    doc.setFontSize(10);doc.setFont(undefined,'normal');
+    doc.text(`${data.studentName||''} (${data.regNumber||''})`,110,56);
+    let y=110;
+    doc.setTextColor(20,20,20);doc.setFontSize(10);
+    doc.setFont(undefined,'bold');
+    doc.text('Term',40,y);doc.text('Opening',110,y);doc.text('Billed',190,y);doc.text('Paid',270,y);doc.text('Balance',350,y);
+    y+=8;doc.setDrawColor(200,200,200);doc.line(40,y,pageW-40,y);y+=18;
+    doc.setFont(undefined,'normal');
+    (data.ledger||[]).forEach(l=>{
+      doc.text('T'+(l.term||'-'),40,y);
+      doc.text('$'+parseFloat(l.opening||0).toFixed(2),110,y);
+      doc.text('$'+parseFloat(l.billed||0).toFixed(2),190,y);
+      doc.text('$'+parseFloat(l.paid||0).toFixed(2),270,y);
+      doc.text('$'+parseFloat(l.balance||0).toFixed(2),350,y);
+      y+=20;
+    });
+    y+=10;doc.line(40,y,pageW-40,y);y+=20;
+    doc.setFont(undefined,'bold');
+    doc.text('Total Outstanding: $'+parseFloat(data.totalBalance||0).toFixed(2),40,y);
+    y+=30;doc.setFont(undefined,'normal');doc.setFontSize(9);doc.setTextColor(120,120,120);
+    doc.text('Generated: '+new Date().toLocaleString(),40,y);
+    doc.save('Statement_'+(data.regNumber||'student')+'.pdf');
+  }catch(err){showMsg('Could not generate PDF: '+err.message,'error');}
+}
+// FEE STATISTICS
+function aFeeStats(){return`<div class="page-title">Fee Statistics</div>
+  <div id="fee-stats-body"><div class="spinner">Loading...</div></div>`;}
+async function loadFeeStats(){
+  const el=document.getElementById('fee-stats-body');if(!el)return;
+  const[{data:ledgers},{data:payments}]=await Promise.all([
+    sb.from('fee_ledger').select('billed,paid,balance,term_id,terms(term_number)'),
+    sb.from('fee_payments').select('amount,payment_method_type,status,created_at').eq('status','confirmed')
+  ]);
+  const totalBilled=(ledgers||[]).reduce((s,l)=>s+parseFloat(l.billed||0),0);
+  const totalCollected=(ledgers||[]).reduce((s,l)=>s+parseFloat(l.paid||0),0);
+  const totalOutstanding=(ledgers||[]).reduce((s,l)=>s+Math.max(0,parseFloat(l.balance||0)),0);
+  const collectionRate=totalBilled>0?Math.round(totalCollected/totalBilled*100):0;
+
+  const methodCounts={};
+  (payments||[]).forEach(p=>{const m=p.payment_method_type||'bank_transfer';methodCounts[m]=(methodCounts[m]||0)+parseFloat(p.amount);});
+  const methodTotal=Object.values(methodCounts).reduce((a,b)=>a+b,0)||1;
+
+  const byTerm={};
+  (ledgers||[]).forEach(l=>{
+    const t='T'+(l.terms?.term_number||'?');
+    if(!byTerm[t])byTerm[t]={billed:0,paid:0};
+    byTerm[t].billed+=parseFloat(l.billed||0);byTerm[t].paid+=parseFloat(l.paid||0);
+  });
+
+  el.innerHTML=`
+  <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px">
+    <div class="stat" style="border-left:4px solid var(--navy)"><div class="stat-val">$${totalBilled.toFixed(2)}</div><div>Total Billed</div></div>
+    <div class="stat" style="border-left:4px solid var(--teal,#0d6e6e)"><div class="stat-val">$${totalCollected.toFixed(2)}</div><div>Total Collected</div></div>
+    <div class="stat" style="border-left:4px solid #c0392b"><div class="stat-val">$${totalOutstanding.toFixed(2)}</div><div>Outstanding</div></div>
+    <div class="stat" style="border-left:4px solid var(--gold)"><div class="stat-val">${collectionRate}%</div><div>Collection Rate</div></div>
+  </div>
+  <div class="card"><h2>Payment Method Breakdown</h2>
+    ${Object.entries(methodCounts).map(([m,v])=>`<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:.85rem"><span>${m.replace(/_/g,' ')}</span><span>$${v.toFixed(2)}</span></div>
+      <div style="background:#e5e5e5;border-radius:6px;height:8px;margin-top:4px;overflow:hidden"><div style="background:var(--teal,#0d6e6e);height:100%;width:${Math.round(v/methodTotal*100)}%"></div></div>
+    </div>`).join('')||'<div class="empty">No confirmed payments yet.</div>'}
+  </div>
+  <div class="card"><h2>Collection by Term</h2>
+    ${Object.entries(byTerm).map(([t,v])=>`<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:.85rem"><span>${t}</span><span>$${v.paid.toFixed(2)} / $${v.billed.toFixed(2)}</span></div>
+      <div style="background:#e5e5e5;border-radius:6px;height:8px;margin-top:4px;overflow:hidden"><div style="background:var(--gold,#c8932a);height:100%;width:${v.billed>0?Math.round(v.paid/v.billed*100):0}%"></div></div>
+    </div>`).join('')||'<div class="empty">No term data yet.</div>'}
+  </div>
+  <button class="btn btn-outline" onclick='downloadFeeStatsPdf(${JSON.stringify({totalBilled,totalCollected,totalOutstanding,collectionRate,methodCounts,byTerm}).replace(/'/g,"&apos;")})'>📄 Download PDF Report</button>`;
+}
+function downloadFeeStatsPdf(d){
+  try{
+    const{jsPDF}=window.jspdf;
+    const doc=new jsPDF({unit:'pt',format:'a4'});
+    const pageW=doc.internal.pageSize.getWidth();
+    doc.setFillColor(12,45,74);doc.rect(0,0,pageW,70,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(16);doc.setFont(undefined,'bold');
+    doc.text('Esigodini VTC — Fee Statistics Report',40,32);
+    doc.setFontSize(10);doc.setFont(undefined,'normal');
+    doc.text('Generated: '+new Date().toLocaleString()+'  |  By: '+(S.profile?.full_name||'Admin')+' ('+(S.profile?.role||'')+')',40,52);
+    let y=100;doc.setTextColor(20,20,20);doc.setFontSize(11);
+    [['Total Billed','$'+d.totalBilled.toFixed(2)],['Total Collected','$'+d.totalCollected.toFixed(2)],
+     ['Outstanding','$'+d.totalOutstanding.toFixed(2)],['Collection Rate',d.collectionRate+'%']].forEach(([k,v])=>{
+      doc.setFont(undefined,'bold');doc.text(k+':',40,y);doc.setFont(undefined,'normal');doc.text(String(v),200,y);y+=22;
+    });
+    y+=10;doc.setFont(undefined,'bold');doc.text('Payment Method Breakdown',40,y);y+=18;doc.setFont(undefined,'normal');
+    Object.entries(d.methodCounts||{}).forEach(([m,v])=>{doc.text(m.replace(/_/g,' ')+': $'+v.toFixed(2),50,y);y+=18;});
+    y+=10;doc.setFont(undefined,'bold');doc.text('Collection by Term',40,y);y+=18;doc.setFont(undefined,'normal');
+    Object.entries(d.byTerm||{}).forEach(([t,v])=>{doc.text(t+': $'+v.paid.toFixed(2)+' collected of $'+v.billed.toFixed(2)+' billed',50,y);y+=18;});
+    doc.save('Fee_Statistics_Report.pdf');
+  }catch(err){showMsg('Could not generate PDF: '+err.message,'error');}
+}
+// FEE STRUCTURE
 function aFees(){return`<div class="page-title">Fee Structure</div>
   <div class="card"><h2>Fee Entries</h2>
     <button class="btn btn-primary btn-sm" style="margin-bottom:14px" onclick="showFeeModal()">+ Add Fee Entry</button>
@@ -1075,13 +1338,13 @@ async function saveFee(){
 function aPayments(){return`<div class="page-title">Payments</div>
   <div class="card"><h2>Pending Payments</h2>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Student</th><th>Reg No.</th><th>Amount</th><th>Method</th><th>Notes/Ref</th><th>Date</th><th>Action</th></tr></thead>
-      <tbody id="a-pay-tb"><tr><td colspan="7" class="spinner">Loading...</td></tr></tbody>
+      <thead><tr><th>Student</th><th>Reg No.</th><th>Amount</th><th>Method</th><th>Term</th><th>Notes/Ref</th><th>Date</th><th>Action</th></tr></thead>
+      <tbody id="a-pay-tb"><tr><td colspan="8" class="spinner">Loading...</td></tr></tbody>
     </table></div>
   </div>
   <div class="card"><h2>All Confirmed Payments</h2>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Student</th><th>Amount</th><th>Method</th><th>Balance After</th><th>Confirmed</th><th>Receipt</th></tr></thead>
+      <thead><tr><th>Student</th><th>Amount</th><th>Method</th><th>Term</th><th>Confirmed</th><th>Receipt</th></tr></thead>
       <tbody id="a-pay-conf-tb"><tr><td colspan="6" class="spinner">Loading...</td></tr></tbody>
     </table></div>
   </div>`;}
@@ -1090,105 +1353,306 @@ async function loadPayments(){
   const ctb=document.getElementById('a-pay-conf-tb');
   if(!tb)return;
   const[pend,conf]=await Promise.all([
-    sb.from('fee_payments').select('*,students(reg_number,profiles(full_name))').eq('status','pending').order('created_at',{ascending:false}),
-    sb.from('fee_payments').select('*,students(reg_number,profiles(full_name))').eq('status','confirmed').order('confirmed_at',{ascending:false}).limit(50)
+    sb.from('fee_payments').select('*,students(reg_number,profiles(full_name)),terms(term_number)').eq('status','pending').order('created_at',{ascending:false}),
+    sb.from('fee_payments').select('*,students(reg_number,profiles(full_name)),terms(term_number)').eq('status','confirmed').order('confirmed_at',{ascending:false}).limit(50)
   ]);
   tb.innerHTML=pend.data?.length?pend.data.map(p=>`<tr>
     <td>${p.students?.profiles?.full_name||'-'}</td><td>${p.students?.reg_number||'-'}</td>
     <td><strong>$${parseFloat(p.amount).toFixed(2)}</strong></td>
     <td>${badge(p.payment_method_type||'bank_transfer')}</td>
+    <td>${p.terms?.term_number?'T'+p.terms.term_number:'Auto-allocate'}</td>
     <td style="max-width:180px;word-break:break-all">${p.notes||'-'}</td>
     <td>${fmt(p.created_at)}</td>
     <td class="btn-row">
-      <button class="btn btn-green btn-sm" onclick="confirmPayment('${p.id}','${p.student_id}',${p.amount})">Confirm</button>
+      <button class="btn btn-green btn-sm" onclick="confirmPayment('${p.id}')">Confirm</button>
       <button class="btn btn-danger btn-sm" onclick="rejectPayment('${p.id}')">Reject</button>
-    </td></tr>`).join(''):'<tr><td colspan="7" class="empty">No pending payments.</td></tr>';
+    </td></tr>`).join(''):'<tr><td colspan="8" class="empty">No pending payments.</td></tr>';
   if(ctb)ctb.innerHTML=conf.data?.length?conf.data.map(p=>`<tr>
     <td>${p.students?.profiles?.full_name||'-'} <small>(${p.students?.reg_number||''})</small></td>
     <td><strong>$${parseFloat(p.amount).toFixed(2)}</strong></td>
     <td>${badge(p.payment_method_type||'bank_transfer')}</td>
-    <td>${p.balance_after!=null?`$${parseFloat(p.balance_after).toFixed(2)}`:'-'}</td>
+    <td>${p.terms?.term_number?'T'+p.terms.term_number:'Auto'}</td>
     <td>${fmt(p.confirmed_at)}</td>
     <td><button class="btn btn-outline btn-sm" onclick='downloadReceipt(${JSON.stringify({id:p.id,amount:p.amount,payment_method_type:p.payment_method_type,receipt_ref:p.receipt_ref,status:p.status,balance_after:p.balance_after,confirmed_at:p.confirmed_at,created_at:p.created_at,studentName:p.students?.profiles?.full_name,regNumber:p.students?.reg_number}).replace(/'/g,"&apos;")})'>📄 PDF</button></td>
   </tr>`).join(''):'<tr><td colspan="6" class="empty">No confirmed payments yet.</td></tr>';
 }
-async function confirmPayment(id,studentId,amount){
-  // Get total paid so far + current fee structure
-  const{data:prev}=await sb.from('fee_payments').select('amount').eq('student_id',studentId).eq('status','confirmed');
-  const totalPaid=(prev||[]).reduce((s,p)=>s+parseFloat(p.amount),0)+parseFloat(amount);
-  // Get fee structure for this student
-  const{data:stu}=await sb.from('students').select('course_id,residence,track').eq('id',studentId).single();
-  const{data:fees}=await sb.from('fee_structure').select('amount').eq('course_id',stu?.course_id).eq('residence',stu?.residence).eq('is_active',true);
-  const totalFee=(fees||[]).reduce((s,f)=>s+parseFloat(f.amount),0);
-  const balance=Math.max(0,totalFee-totalPaid);
-  await sb.from('fee_payments').update({status:'confirmed',confirmed_by:S.user.id,confirmed_at:new Date().toISOString(),balance_after:balance}).eq('id',id);
-  await logAudit('payment.confirm','fee_payments',id,{status:'pending'},{status:'confirmed',balance_after:balance});
-  showMsg(`Payment confirmed! Balance remaining: $${balance.toFixed(2)}`);await loadPayments();
+async function confirmPayment(id){
+  await sb.from('fee_payments').update({status:'confirmed',confirmed_by:S.user.id,confirmed_at:new Date().toISOString()}).eq('id',id);
+  await sb.rpc('allocate_payment',{p_payment_id:id});
+  await logAudit('payment.confirm','fee_payments',id,{status:'pending'},{status:'confirmed'});
+  showMsg('Payment confirmed and allocated to the student\'s fee ledger!');await loadPayments();
 }
 async function rejectPayment(id){
   await sb.from('fee_payments').update({status:'rejected'}).eq('id',id);
   showMsg('Payment rejected.','error');await loadPayments();
 }
 // RESULTS
-function aResults(){return`<div class="page-title">Results</div>
-  <div class="card"><h2>Enter / Edit Results</h2>
+function aResults(){
+  const isStaff=S.profile?.role==='staff';
+  return`<div class="page-title">${isStaff?'Enter Results':'Results'}</div>
+  <div class="card"><h2>Grading Scale</h2>
+    <div id="grading-scale-editor"><div class="spinner">Loading...</div></div>
+  </div>
+  <div class="card"><h2>Bulk Recalculate</h2>
+    <p style="font-size:.82rem;color:var(--grey)">Recalculates every student's final mark for a course + term using the current weights and grading scale.</p>
+    <div class="form-row">
+      <div class="form-group"><label>Course</label><select id="bulk-course"><option value="">Select course</option></select></div>
+      <div class="form-group"><label>Term Number</label><input id="bulk-term" type="number" min="1" max="6" placeholder="e.g. 1"/></div>
+    </div>
+    <button class="btn btn-teal" onclick="bulkRecalc()">Recalculate All</button>
+  </div>
+  <div class="card"><h2>${isStaff?'Enter Results for My Courses':'Enter / Edit Results'}</h2>
     <button class="btn btn-primary btn-sm" style="margin-bottom:14px" onclick="showResultModal()">+ Enter Result</button>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Student</th><th>Reg No.</th><th>Term</th><th>Subject</th><th>Score</th><th>Grade</th><th>Entered By</th><th>Edit</th></tr></thead>
-      <tbody id="a-res-tb"><tr><td colspan="8" class="spinner">Loading...</td></tr></tbody>
+      <thead><tr><th>Student</th><th>Reg No.</th><th>Term</th><th>Subject</th><th>Coursework</th><th>Theory</th><th>Final</th><th>Grade</th><th>Actions</th></tr></thead>
+      <tbody id="a-res-tb"><tr><td colspan="9" class="spinner">Loading...</td></tr></tbody>
     </table></div>
   </div><div id="res-modal"></div>`;}
+async function myStaffCourseIds(){
+  const{data:staffRow}=await sb.from('staff').select('id').eq('profile_id',S.user.id).maybeSingle();
+  if(!staffRow)return[];
+  const{data}=await sb.from('staff_courses').select('course_id').eq('staff_id',staffRow.id);
+  return(data||[]).map(r=>r.course_id);
+}
 async function loadResults(){
   const tb=document.getElementById('a-res-tb');if(!tb)return;
-  const{data}=await sb.from('results').select('*,students(reg_number,profiles(full_name)),terms(term_number,term_type),profiles(full_name)').order('created_at',{ascending:false}).limit(100);
-  if(!data?.length){tb.innerHTML='<tr><td colspan="8" class="empty">No results yet.</td></tr>';return;}
+  const isStaff=S.profile?.role==='staff';
+  let courseIds=null;
+  if(isStaff){courseIds=await myStaffCourseIds();}
+
+  let q=sb.from('results').select('*,students(reg_number,course_id,profiles(full_name)),terms(term_number,term_type),profiles(full_name)').order('created_at',{ascending:false}).limit(150);
+  const{data:all}=await q;
+  let data=all||[];
+  if(isStaff)data=data.filter(r=>courseIds.includes(r.students?.course_id));
+
+  if(!data.length){tb.innerHTML='<tr><td colspan="9" class="empty">No results yet.</td></tr>';return;}
   tb.innerHTML=data.map(r=>`<tr>
     <td>${r.students?.profiles?.full_name||'-'}</td><td>${r.students?.reg_number||'-'}</td>
     <td>T${r.terms?.term_number||'-'} <small>(${r.terms?.term_type||'-'})</small></td>
     <td>${r.subject||'-'}</td>
+    <td style="font-size:.8rem">${r.coursework_raw!=null?`${r.coursework_raw}/${r.coursework_total||100}`:'-'}</td>
+    <td style="font-size:.8rem">${r.theory_raw!=null?`${r.theory_raw}/${r.theory_total||100}`:'-'}</td>
     <td><strong>${r.score!=null?r.score+'%':'-'}</strong></td>
     <td><strong>${r.grade||'-'}</strong></td>
-    <td style="font-size:.76rem">${r.profiles?.full_name||'System'}</td>
-    <td><button class="btn btn-outline btn-sm" onclick="editResult('${r.id}',${r.score},'${r.grade||''}')">Edit</button></td>
+    <td class="btn-row">
+      <button class="btn btn-outline btn-sm" onclick='showResultModal(${JSON.stringify(r).replace(/'/g,"&apos;")})'>Edit</button>
+      <button class="btn btn-teal btn-sm" onclick="recalcOne('${r.id}')">Calculate</button>
+    </td>
   </tr>`).join('');
+
+  // Populate the course dropdown for bulk recalc, scoped to staff if needed
+  const bc=document.getElementById('bulk-course');
+  if(bc){
+    let cq=sb.from('courses').select('id,name').eq('is_active',true);
+    const{data:courses}=await cq;
+    let list=courses||[];
+    if(isStaff)list=list.filter(c=>courseIds.includes(c.id));
+    bc.innerHTML='<option value="">Select course</option>'+list.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  }
+
+  // Grading scale editor
+  const gse=document.getElementById('grading-scale-editor');
+  if(gse){
+    const{data:ps}=await sb.from('payment_settings').select('grade_boundaries').order('updated_at',{ascending:false}).limit(1).maybeSingle();
+    const bounds=ps?.grade_boundaries||[{grade:'A',min:80},{grade:'B',min:70},{grade:'C',min:60},{grade:'D',min:50},{grade:'Fail',min:0}];
+    gse.innerHTML=`<div id="gs-rows">${bounds.map((b,i)=>`<div class="form-row" style="margin-bottom:6px">
+        <div class="form-group"><input value="${b.grade}" placeholder="Grade label" data-gs-grade="${i}"/></div>
+        <div class="form-group"><input type="number" value="${b.min}" placeholder="Minimum %" data-gs-min="${i}"/></div>
+      </div>`).join('')}</div>
+      <div class="btn-row">
+        <button class="btn btn-outline btn-sm" onclick="addGradeRow()">+ Add Grade</button>
+        <button class="btn btn-primary btn-sm" onclick="saveGradingScale()">Save Grading Scale</button>
+      </div>`;
+  }
 }
-function showResultModal(){
+function addGradeRow(){
+  const rows=document.getElementById('gs-rows');
+  const i=rows.children.length;
+  rows.insertAdjacentHTML('beforeend',`<div class="form-row" style="margin-bottom:6px">
+    <div class="form-group"><input placeholder="Grade label" data-gs-grade="${i}"/></div>
+    <div class="form-group"><input type="number" placeholder="Minimum %" data-gs-min="${i}"/></div>
+  </div>`);
+}
+async function saveGradingScale(){
+  const rows=document.getElementById('gs-rows');
+  const grades=[...rows.querySelectorAll('[data-gs-grade]')].map(el=>el.value.trim());
+  const mins=[...rows.querySelectorAll('[data-gs-min]')].map(el=>parseFloat(el.value)||0);
+  const scale=grades.map((g,i)=>({grade:g,min:mins[i]})).filter(b=>b.grade).sort((a,b)=>b.min-a.min);
+  const{data:existing}=await sb.from('payment_settings').select('id').limit(1).maybeSingle();
+  await sb.from('payment_settings').upsert({id:existing?.id,grade_boundaries:scale,set_by:S.user.id,updated_at:new Date().toISOString()});
+  showMsg('Grading scale saved. Recalculate results to apply it.');
+}
+async function recalcOne(resultId){
+  await sb.rpc('recalc_final_mark',{p_result_id:resultId});
+  showMsg('Recalculated.');await loadResults();
+}
+async function bulkRecalc(){
+  const courseId=document.getElementById('bulk-course')?.value;
+  const termNo=parseInt(document.getElementById('bulk-term')?.value);
+  if(!courseId||!termNo){showMsg('Select a course and term number','error');return;}
+  const{data:terms}=await sb.from('terms').select('id').eq('term_number',termNo);
+  if(!terms?.length){showMsg('No matching term found.','error');return;}
+  let total=0;
+  for(const t of terms){
+    const{data:cnt}=await sb.rpc('recalc_final_marks_bulk',{p_course_id:courseId,p_term_id:t.id});
+    total+=cnt||0;
+  }
+  showMsg(`Recalculated ${total} result(s).`);await loadResults();
+}
+function showResultModal(existing){
+  const r=existing||{};
   document.getElementById('res-modal').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)this.innerHTML=''">
-    <div class="modal"><h3>Enter Result</h3>
-      <div class="form-group"><label>Student Reg Number</label><input id="r-reg" placeholder="EVTC-2026-0001"/></div>
+    <div class="modal"><h3>${r.id?'Edit Result':'Enter Result'}</h3>
+      <input type="hidden" id="r-id" value="${r.id||''}"/>
+      <div class="form-group"><label>Student Reg Number</label><input id="r-reg" placeholder="EVTC-2026-0001" value="${r.students?.reg_number||''}" ${r.id?'disabled':''}/></div>
       <div class="form-row">
-        <div class="form-group"><label>Term (1–6)</label><input id="r-term" type="number" min="1" max="6"/></div>
-        <div class="form-group"><label>Subject</label><input id="r-subj" placeholder="e.g. Welding Theory"/></div>
+        <div class="form-group"><label>Term Number (1–6)</label><input id="r-term" type="number" min="1" max="6" value="${r.terms?.term_number||''}"/></div>
+        <div class="form-group"><label>Subject</label><input id="r-subj" placeholder="e.g. Welding Theory" value="${r.subject||''}"/></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Score (%)</label><input id="r-score" type="number" min="0" max="100"/></div>
-        <div class="form-group"><label>Grade</label>
-          <select id="r-grade"><option>A</option><option>B</option><option>C</option><option>D</option><option>F</option></select></div>
+        <div class="form-group"><label>Coursework Raw</label><input id="r-cw-raw" type="number" value="${r.coursework_raw!=null?r.coursework_raw:''}" placeholder="e.g. 20"/></div>
+        <div class="form-group"><label>Coursework Total</label><input id="r-cw-total" type="number" value="${r.coursework_total||100}"/></div>
       </div>
-      <div class="form-group"><label>Remarks</label><input id="r-rem" placeholder="Optional"/></div>
+      <div class="form-row">
+        <div class="form-group"><label>Theory Raw</label><input id="r-th-raw" type="number" value="${r.theory_raw!=null?r.theory_raw:''}" placeholder="e.g. 55"/></div>
+        <div class="form-group"><label>Theory Total</label><input id="r-th-total" type="number" value="${r.theory_total||100}"/></div>
+      </div>
+      <div class="form-group"><label>Remarks</label><input id="r-rem" value="${r.remarks||''}" placeholder="Optional"/></div>
+      <p style="font-size:.78rem;color:var(--grey)">Final mark and grade are calculated automatically from the course's weighting once saved — use the "Calculate" button afterward, or Bulk Recalculate for a whole class.</p>
       <div class="btn-row">
         <button class="btn btn-primary" onclick="saveResult()">Save</button>
         <button class="btn btn-outline" onclick="document.getElementById('res-modal').innerHTML=''">Cancel</button>
       </div></div></div>`;
 }
 async function saveResult(){
-  const reg=document.getElementById('r-reg')?.value?.trim().toUpperCase();
+  const id=document.getElementById('r-id')?.value;
   const termNo=parseInt(document.getElementById('r-term')?.value);
   const subj=document.getElementById('r-subj')?.value?.trim();
-  if(!reg||!termNo||!subj){showMsg('Fill all fields','error');return;}
-  const{data:stu}=await sb.from('students').select('id,intake_id').eq('reg_number',reg).single();
-  if(!stu){showMsg('Student not found','error');return;}
-  const{data:term}=await sb.from('terms').select('id').eq('intake_id',stu.intake_id).eq('term_number',termNo).maybeSingle();
-  await sb.from('results').insert([{student_id:stu.id,term_id:term?.id,subject:subj,score:parseFloat(document.getElementById('r-score')?.value)||null,grade:document.getElementById('r-grade')?.value,remarks:document.getElementById('r-rem')?.value,entered_by:S.user.id,last_edited_by:S.user.id}]);
-  await logAudit('result.create','results',stu.id,null,{reg,subj});
-  showMsg('Result saved!');document.getElementById('res-modal').innerHTML='';await loadResults();
+  const cwRaw=parseFloat(document.getElementById('r-cw-raw')?.value),cwTotal=parseFloat(document.getElementById('r-cw-total')?.value)||100;
+  const thRaw=parseFloat(document.getElementById('r-th-raw')?.value),thTotal=parseFloat(document.getElementById('r-th-total')?.value)||100;
+  const rem=document.getElementById('r-rem')?.value;
+  if(!termNo||!subj){showMsg('Fill all required fields','error');return;}
+
+  let resultId=id;
+  if(id){
+    await sb.from('results').update({subject:subj,coursework_raw:isNaN(cwRaw)?null:cwRaw,coursework_total:cwTotal,theory_raw:isNaN(thRaw)?null:thRaw,theory_total:thTotal,remarks:rem,last_edited_by:S.user.id,updated_at:new Date().toISOString()}).eq('id',id);
+    await logAudit('result.edit','results',id,null,{subj});
+  } else {
+    const reg=document.getElementById('r-reg')?.value?.trim().toUpperCase();
+    if(!reg){showMsg('Enter the student reg number','error');return;}
+    const{data:stu}=await sb.from('students').select('id,intake_id').eq('reg_number',reg).single();
+    if(!stu){showMsg('Student not found','error');return;}
+    const{data:term}=await sb.from('terms').select('id').eq('intake_id',stu.intake_id).eq('term_number',termNo).maybeSingle();
+    const{data:inserted}=await sb.from('results').insert([{student_id:stu.id,term_id:term?.id,subject:subj,coursework_raw:isNaN(cwRaw)?null:cwRaw,coursework_total:cwTotal,theory_raw:isNaN(thRaw)?null:thRaw,theory_total:thTotal,remarks:rem,entered_by:S.user.id,last_edited_by:S.user.id}]).select().single();
+    resultId=inserted?.id;
+    await logAudit('result.create','results',resultId,null,{reg,subj});
+  }
+  if(resultId)await sb.rpc('recalc_final_mark',{p_result_id:resultId});
+  showMsg('Result saved and calculated!');document.getElementById('res-modal').innerHTML='';await loadResults();
 }
-async function editResult(id,score,grade){
-  const ns=prompt('New score:',score);if(ns===null)return;
-  const ng=prompt('New grade (A/B/C/D/F):',grade);
-  await sb.from('results').update({score:parseFloat(ns)||null,grade:ng,last_edited_by:S.user.id,updated_at:new Date().toISOString()}).eq('id',id);
-  await logAudit('result.edit','results',id,{score},{score:parseFloat(ns)});
-  showMsg('Result updated!');await loadResults();
+// RESULT STATISTICS
+function aResultStats(){
+  const isStaff=S.profile?.role==='staff';
+  return`<div class="page-title">${isStaff?'My Course Statistics':'Result Statistics'}</div>
+  <div class="card">
+    <div class="form-row">
+      <div class="form-group"><label>Course</label><select id="rs-course"><option value="">All my courses</option></select></div>
+      <div class="form-group"><label>Term Number</label><input id="rs-term" type="number" min="1" max="6" placeholder="All terms"/></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="loadResultStats()">Apply Filter</button>
+  </div>
+  <div id="result-stats-body"><div class="spinner">Loading...</div></div>`;}
+async function loadResultStats(){
+  const el=document.getElementById('result-stats-body');if(!el)return;
+  const isStaff=S.profile?.role==='staff';
+  let courseIds=null;
+  if(isStaff)courseIds=await myStaffCourseIds();
+
+  const courseSel=document.getElementById('rs-course');
+  if(courseSel && !courseSel.dataset.built){
+    const{data:courses}=await sb.from('courses').select('id,name');
+    let list=courses||[];
+    if(isStaff)list=list.filter(c=>courseIds.includes(c.id));
+    courseSel.innerHTML='<option value="">'+(isStaff?'All my courses':'All courses')+'</option>'+list.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    courseSel.dataset.built='1';
+  }
+  const filterCourse=document.getElementById('rs-course')?.value;
+  const filterTerm=parseInt(document.getElementById('rs-term')?.value);
+
+  let q=sb.from('results').select('*,students(course_id,profiles(full_name)),terms(term_number),courses:students(courses(name))');
+  const{data:all}=await q;
+  let data=all||[];
+  if(isStaff)data=data.filter(r=>courseIds.includes(r.students?.course_id));
+  if(filterCourse)data=data.filter(r=>r.students?.course_id===filterCourse);
+  if(filterTerm)data=data.filter(r=>r.terms?.term_number===filterTerm);
+  data=data.filter(r=>r.score!=null);
+
+  if(!data.length){el.innerHTML='<div class="card"><div class="empty">No results match this filter yet.</div></div>';return;}
+
+  const total=data.length;
+  const passCount=data.filter(r=>(r.grade||'').toLowerCase()!=='fail').length;
+  const passRate=Math.round(passCount/total*100);
+  const avg=(data.reduce((s,r)=>s+parseFloat(r.score||0),0)/total).toFixed(1);
+  const highest=Math.max(...data.map(r=>parseFloat(r.score||0)));
+  const lowest=Math.min(...data.map(r=>parseFloat(r.score||0)));
+  const gradeDist={};
+  data.forEach(r=>{const g=r.grade||'Ungraded';gradeDist[g]=(gradeDist[g]||0)+1;});
+
+  const cwAvg=(data.filter(r=>r.coursework_raw!=null).reduce((s,r)=>s+(r.coursework_raw/r.coursework_total*100),0)/(data.filter(r=>r.coursework_raw!=null).length||1)).toFixed(1);
+  const thAvg=(data.filter(r=>r.theory_raw!=null).reduce((s,r)=>s+(r.theory_raw/r.theory_total*100),0)/(data.filter(r=>r.theory_raw!=null).length||1)).toFixed(1);
+
+  const sorted=[...data].sort((a,b)=>b.score-a.score);
+  const top5=sorted.slice(0,5);
+  const bottom5=sorted.slice(-5).reverse();
+
+  el.innerHTML=`
+  <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px">
+    <div class="stat" style="border-left:4px solid var(--teal,#0d6e6e)"><div class="stat-val">${passRate}%</div><div>Pass Rate</div></div>
+    <div class="stat" style="border-left:4px solid var(--gold)"><div class="stat-val">${avg}%</div><div>Class Average</div></div>
+    <div class="stat" style="border-left:4px solid var(--navy)"><div class="stat-val">${highest}%</div><div>Highest Score</div></div>
+    <div class="stat" style="border-left:4px solid #c0392b"><div class="stat-val">${lowest}%</div><div>Lowest Score</div></div>
+  </div>
+  <div class="card"><h2>Grade Distribution</h2>
+    ${Object.entries(gradeDist).sort().map(([g,c])=>`<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:.85rem"><span>${g}</span><span>${c} student(s)</span></div>
+      <div style="background:#e5e5e5;border-radius:6px;height:8px;margin-top:4px;overflow:hidden"><div style="background:var(--gold,#c8932a);height:100%;width:${Math.round(c/total*100)}%"></div></div>
+    </div>`).join('')}
+  </div>
+  <div class="card"><h2>Coursework vs Theory Average</h2>
+    <div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.85rem"><span>Coursework</span><span>${cwAvg}%</span></div>
+      <div style="background:#e5e5e5;border-radius:6px;height:8px;margin-top:4px;overflow:hidden"><div style="background:var(--teal,#0d6e6e);height:100%;width:${cwAvg}%"></div></div></div>
+    <div><div style="display:flex;justify-content:space-between;font-size:.85rem"><span>Theory</span><span>${thAvg}%</span></div>
+      <div style="background:#e5e5e5;border-radius:6px;height:8px;margin-top:4px;overflow:hidden"><div style="background:var(--navy);height:100%;width:${thAvg}%"></div></div></div>
+  </div>
+  <div class="card"><h2>Top 5 Students</h2>
+    <div class="tbl-wrap"><table><tbody>${top5.map(r=>`<tr><td>${r.students?.profiles?.full_name||'-'}</td><td><strong>${r.score}%</strong></td><td>${r.grade||'-'}</td></tr>`).join('')}</tbody></table></div>
+  </div>
+  <div class="card"><h2>Bottom 5 Students</h2>
+    <div class="tbl-wrap"><table><tbody>${bottom5.map(r=>`<tr><td>${r.students?.profiles?.full_name||'-'}</td><td><strong>${r.score}%</strong></td><td>${r.grade||'-'}</td></tr>`).join('')}</tbody></table></div>
+  </div>
+  <button class="btn btn-outline" onclick='downloadResultStatsPdf(${JSON.stringify({scope:isStaff?'Staff (own courses)':'Institution-wide',filterCourse:document.getElementById('rs-course')?.selectedOptions?.[0]?.text||'All',filterTerm:filterTerm||'All',passRate,avg,highest,lowest,gradeDist,cwAvg,thAvg,generatedBy:S.profile?.full_name,role:S.profile?.role}).replace(/'/g,"&apos;")})'>📄 Download PDF Report</button>`;
+}
+function downloadResultStatsPdf(d){
+  try{
+    const{jsPDF}=window.jspdf;
+    const doc=new jsPDF({unit:'pt',format:'a4'});
+    const pageW=doc.internal.pageSize.getWidth();
+    doc.setFillColor(12,45,74);doc.rect(0,0,pageW,70,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(16);doc.setFont(undefined,'bold');
+    doc.text('Esigodini VTC — Result Statistics Report',40,32);
+    doc.setFontSize(10);doc.setFont(undefined,'normal');
+    doc.text(`Scope: ${d.scope} | Course: ${d.filterCourse} | Term: ${d.filterTerm}`,40,52);
+    let y=100;doc.setTextColor(20,20,20);doc.setFontSize(11);
+    [['Pass Rate',d.passRate+'%'],['Class Average',d.avg+'%'],['Highest',d.highest+'%'],['Lowest',d.lowest+'%'],
+     ['Coursework Avg',d.cwAvg+'%'],['Theory Avg',d.thAvg+'%']].forEach(([k,v])=>{
+      doc.setFont(undefined,'bold');doc.text(k+':',40,y);doc.setFont(undefined,'normal');doc.text(String(v),200,y);y+=20;
+    });
+    y+=10;doc.setFont(undefined,'bold');doc.text('Grade Distribution',40,y);y+=18;doc.setFont(undefined,'normal');
+    Object.entries(d.gradeDist||{}).forEach(([g,c])=>{doc.text(g+': '+c+' student(s)',50,y);y+=18;});
+    y+=15;doc.setFontSize(9);doc.setTextColor(120,120,120);
+    doc.text(`Generated by: ${d.generatedBy||'-'} (${d.role||'-'})  |  ${new Date().toLocaleString()}`,40,y);
+    doc.save('Result_Statistics_Report.pdf');
+  }catch(err){showMsg('Could not generate PDF: '+err.message,'error');}
 }
 // LIBRARY
 function aLibrary(){return`<div class="page-title">Library</div>
@@ -1379,6 +1843,14 @@ function aSettings(){return`<div class="page-title">Settings</div>
   </div>
   <div class="card"><h2>Results Visibility</h2>
     <div id="results-settings"><div class="spinner">Loading...</div></div>
+  </div>
+  <div class="card"><h2>Create Payment Plan</h2>
+    <div id="payment-plans-section"><div class="spinner">Loading...</div></div>
+  </div>
+  <div class="card"><h2>Payment Reminders</h2>
+    <p style="font-size:.85rem;color:var(--grey)">Send a reminder (email + WhatsApp link) to every student with an outstanding balance.</p>
+    <button class="btn btn-teal btn-sm" onclick="sendReminders()">Send Reminders Now</button>
+    <div id="reminders-result" style="margin-top:12px"></div>
   </div>`;}
 async function loadSettings(){
   const{data:ps}=await sb.from('payment_settings').select('*').order('updated_at',{ascending:false}).limit(1).maybeSingle();
@@ -1410,7 +1882,53 @@ async function loadSettings(){
         <select id="s-lock"><option value="false" ${!ps?.results_locked?'selected':''}>No — students can see results (if fee met)</option><option value="true" ${ps?.results_locked?'selected':''}>Yes — lock all results (overrides fee threshold)</option></select>
       </div>
     </div>
+    <div class="form-group"><label>Debt Threshold Blocking (USD) — leave blank to disable</label><input id="s-debt-threshold" type="number" value="${ps?.debt_block_threshold!=null?ps.debt_block_threshold:''}" placeholder="e.g. 200"/></div>
+    <p style="font-size:.78rem;color:var(--grey)">If set, students with an outstanding balance above this amount will not be able to view their results.</p>
     <button class="btn btn-gold" onclick="saveResultSettings()">Save Results Settings</button>`;
+  const plansEl=document.getElementById('payment-plans-section');
+  if(plansEl)plansEl.innerHTML=`
+    <div class="alert alert-info">Create a structured installment plan for a student instead of a lump-sum payment.</div>
+    <div class="form-row">
+      <div class="form-group"><label>Student Reg Number</label><input id="pp-reg" placeholder="EVTC-2026-0001"/></div>
+      <div class="form-group"><label>Term Number</label><input id="pp-term" type="number" min="1" max="6"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Number of Installments</label><input id="pp-count" type="number" min="1" value="3"/></div>
+      <div class="form-group"><label>Amount per Installment (USD)</label><input id="pp-amt" type="number" placeholder="0.00"/></div>
+    </div>
+    <div class="form-group"><label>First Due Date</label><input id="pp-date" type="date"/></div>
+    <button class="btn btn-primary btn-sm" onclick="createPaymentPlan()">Create Plan</button>`;
+}
+async function sendReminders(){
+  const el=document.getElementById('reminders-result');
+  if(el)el.innerHTML='<div class="spinner">Sending...</div>';
+  const{data,error}=await sb.functions.invoke('send-reminders',{body:{}});
+  if(error||data?.error){if(el)el.innerHTML=`<div class="alert alert-error">${(data&&data.error)||error?.message||'Could not send reminders.'}</div>`;return;}
+  await logAudit('reminders.send','payment_settings','',null,{count:data.count});
+  if(el)el.innerHTML=`<div class="alert alert-success">Sent ${data.count||0} reminder(s).</div>
+    ${(data.whatsappLinks||[]).length?`<div style="margin-top:10px"><strong style="font-size:.85rem">WhatsApp links (tap to send manually):</strong>
+      ${data.whatsappLinks.map(w=>`<div style="margin-top:6px"><a class="btn btn-teal btn-sm" target="_blank" href="${w.link}">Send to ${w.name}</a></div>`).join('')}
+    </div>`:''}`;
+}
+async function createPaymentPlan(){
+  const reg=document.getElementById('pp-reg')?.value?.trim().toUpperCase();
+  const termNo=parseInt(document.getElementById('pp-term')?.value);
+  const count=parseInt(document.getElementById('pp-count')?.value)||1;
+  const amt=parseFloat(document.getElementById('pp-amt')?.value);
+  const firstDate=document.getElementById('pp-date')?.value;
+  if(!reg||!termNo||!amt||!firstDate){showMsg('Fill all fields','error');return;}
+  const{data:stu}=await sb.from('students').select('id,intake_id').eq('reg_number',reg).single();
+  if(!stu){showMsg('Student not found','error');return;}
+  const{data:term}=await sb.from('terms').select('id').eq('intake_id',stu.intake_id).eq('term_number',termNo).maybeSingle();
+  const rows=[];
+  const baseDate=new Date(firstDate);
+  for(let i=0;i<count;i++){
+    const due=new Date(baseDate);due.setMonth(due.getMonth()+i);
+    rows.push({student_id:stu.id,term_id:term?.id,installment_number:i+1,amount_due:amt,due_date:due.toISOString().slice(0,10),status:'pending',created_by:S.user.id});
+  }
+  await sb.from('payment_plans').insert(rows);
+  await logAudit('payment_plan.create','payment_plans',stu.id,null,{reg,count,amt});
+  showMsg(`Payment plan created: ${count} installment(s) of $${amt.toFixed(2)}.`);
 }
 async function savePaySettings(){
   await sb.from('payment_settings').upsert({id:(await sb.from('payment_settings').select('id').limit(1).maybeSingle()).data?.id,ecocash_number:document.getElementById('s-eco')?.value,admin_email:document.getElementById('s-email')?.value,bank_name:document.getElementById('s-bank')?.value,bank_account:document.getElementById('s-acc')?.value,bank_branch:document.getElementById('s-branch')?.value,set_by:S.user.id,updated_at:new Date().toISOString()});
@@ -1425,7 +1943,8 @@ async function toggleIntake(newVal){
 }
 async function saveResultSettings(){
   const{data:existing}=await sb.from('payment_settings').select('id').limit(1).maybeSingle();
-  await sb.from('payment_settings').upsert({id:existing?.id,min_fee_for_results:parseFloat(document.getElementById('s-min-fee')?.value)||0,results_locked:document.getElementById('s-lock')?.value==='true',set_by:S.user.id,updated_at:new Date().toISOString()});
+  const thresholdVal=document.getElementById('s-debt-threshold')?.value;
+  await sb.from('payment_settings').upsert({id:existing?.id,min_fee_for_results:parseFloat(document.getElementById('s-min-fee')?.value)||0,results_locked:document.getElementById('s-lock')?.value==='true',debt_block_threshold:thresholdVal===''?null:parseFloat(thresholdVal),set_by:S.user.id,updated_at:new Date().toISOString()});
   showMsg('Results visibility settings saved!');
 }
 // AUDIT
@@ -1555,16 +2074,32 @@ async function loadStuResults(){
     </div>`;
     return;
   }
+  // Debt threshold blocking (admin-configurable)
+  if(ps?.debt_block_threshold!=null){
+    const{data:ledger}=await sb.from('fee_ledger').select('balance').eq('student_id',stu.id);
+    const totalBalance=(ledger||[]).reduce((s,l)=>s+parseFloat(l.balance||0),0);
+    if(totalBalance>parseFloat(ps.debt_block_threshold)){
+      lockEl.innerHTML=`<div class="locked-overlay">
+        <div class="lock-icon">🔒</div>
+        <h3>Results Locked — Outstanding Balance</h3>
+        <p style="color:var(--grey);margin-top:8px">Your outstanding balance ($${totalBalance.toFixed(2)}) is above the threshold to view results ($${parseFloat(ps.debt_block_threshold).toFixed(2)}).</p>
+        <button class="btn btn-gold" style="margin-top:16px" onclick="setTab('fees')">Go to Fees & Payments</button>
+      </div>`;
+      return;
+    }
+  }
   // Can see results
   const{data:results}=await sb.from('results').select('*,terms(term_number,term_type)').eq('student_id',stu.id).order('created_at',{ascending:false});
-  lockEl.innerHTML=`<div class="card"><h2>📝 Academic Results</h2>
+  lockEl.innerHTML=`<div class="card"><h2>Academic Results</h2>
     ${results?.length?`<div class="tbl-wrap"><table>
-      <thead><tr><th>Term</th><th>Subject</th><th>Score</th><th>Grade</th><th>Remarks</th></tr></thead>
+      <thead><tr><th>Term</th><th>Subject</th><th>Coursework</th><th>Theory</th><th>Final</th><th>Grade</th><th>Remarks</th></tr></thead>
       <tbody>${results.map(r=>`<tr>
         <td>Term ${r.terms?.term_number||'-'} <small>(${r.terms?.term_type||'-'})</small></td>
         <td>${r.subject||'-'}</td>
+        <td style="font-size:.8rem">${r.coursework_raw!=null?`${r.coursework_raw}/${r.coursework_total||100}`:'-'}</td>
+        <td style="font-size:.8rem">${r.theory_raw!=null?`${r.theory_raw}/${r.theory_total||100}`:'-'}</td>
         <td><strong>${r.score!=null?r.score+'%':'-'}</strong></td>
-        <td><strong style="color:${r.grade==='A'||r.grade==='B'?'var(--green)':r.grade==='F'?'var(--danger)':'var(--navy)'}">${r.grade||'-'}</strong></td>
+        <td><strong style="color:${r.grade==='A'||r.grade==='B'?'var(--green)':r.grade==='Fail'?'var(--danger)':'var(--navy)'}">${r.grade||'-'}</strong></td>
         <td>${r.remarks||'-'}</td>
       </tr>`).join('')}</tbody>
     </table></div>`:'<div class="empty">No results recorded yet.</div>'}
@@ -1572,6 +2107,8 @@ async function loadStuResults(){
 }
 function sFees(){return`<div class="page-title">Fees & Payments</div>
   <div class="card"><h2>Fee Summary</h2><div id="s-fee-summary"><div class="spinner">Loading...</div></div></div>
+  <div class="card"><h2>Term-by-Term Ledger</h2><div id="s-fee-ledger"><div class="spinner">Loading...</div></div></div>
+  <div class="card" id="s-plan-card" style="display:none"><h2>Payment Plan</h2><div id="s-payment-plan"></div></div>
   <div class="card"><h2>How to Pay</h2><div id="s-pay-info"><div class="spinner">Loading...</div></div></div>
   <div class="card"><h2>Submit Payment</h2>
     <div class="alert alert-info">Send proof of payment to the admin email below, then fill in this form so admin can verify and confirm your payment.</div>
@@ -1581,25 +2118,29 @@ function sFees(){return`<div class="page-title">Fees & Payments</div>
         <select id="sp-method"><option value="bank_transfer">Bank Transfer</option><option value="ecocash">EcoCash</option><option value="cash">Cash</option></select>
       </div>
     </div>
+    <div class="form-group"><label>Which term is this for?</label>
+      <select id="sp-term"><option value="">Auto-allocate to oldest balance (recommended)</option></select>
+    </div>
     <div class="form-group"><label>Reference / Transaction ID</label><input id="sp-ref" placeholder="Bank ref, EcoCash transaction ID, etc."/></div>
     <div class="form-group"><label>Additional Notes</label><input id="sp-notes" placeholder="Any other info for admin"/></div>
     <button class="btn btn-gold" onclick="submitStuPayment()">Submit Payment Record</button>
   </div>
   <div class="card"><h2>Payment History</h2>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Amount</th><th>Method</th><th>Reference</th><th>Status</th><th>Balance After</th><th>Date</th><th>Receipt</th></tr></thead>
-      <tbody id="s-pay-tb"><tr><td colspan="7" class="spinner">Loading...</td></tr></tbody>
+      <thead><tr><th>Amount</th><th>Method</th><th>Reference</th><th>Status</th><th>Date</th><th>Receipt</th></tr></thead>
+      <tbody id="s-pay-tb"><tr><td colspan="6" class="spinner">Loading...</td></tr></tbody>
     </table></div>
   </div>`;}
 async function loadStuFees(){
   const{data:stu}=await sb.from('students').select('id,residence,track,course_id,reg_number').eq('profile_id',S.user.id).single();
   if(!stu)return;
-  // Fee summary
   const{data:feeStr}=await sb.from('fee_structure').select('amount,label,residence').eq('course_id',stu.course_id).eq('residence',stu.residence).eq('is_active',true);
-  const{data:payments}=await sb.from('fee_payments').select('id,amount,status,payment_method_type,notes,balance_after,created_at,confirmed_at,receipt_ref').eq('student_id',stu.id).order('created_at',{ascending:false});
+  const{data:payments}=await sb.from('fee_payments').select('id,amount,status,payment_method_type,notes,created_at,receipt_ref,term_id').eq('student_id',stu.id).order('created_at',{ascending:false});
+  const{data:ledger}=await sb.from('fee_ledger').select('*,terms(term_number)').eq('student_id',stu.id).order('created_at');
   const totalFee=(feeStr||[]).reduce((s,f)=>s+parseFloat(f.amount),0);
   const totalPaid=(payments||[]).filter(p=>p.status==='confirmed').reduce((s,p)=>s+parseFloat(p.amount),0);
-  const balance=Math.max(0,totalFee-totalPaid);
+  const totalBalance=(ledger||[]).reduce((s,l)=>s+parseFloat(l.balance||0),0);
+  const balance=Math.max(0,totalBalance||Math.max(0,totalFee-totalPaid));
   const pct=totalFee>0?Math.min(100,(totalPaid/totalFee)*100).toFixed(0):100;
   const sumEl=document.getElementById('s-fee-summary');
   if(sumEl)sumEl.innerHTML=`
@@ -1612,7 +2153,28 @@ async function loadStuFees(){
       <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
       <div style="font-size:.78rem;color:var(--grey);margin-top:4px">${pct}% paid</div>
     </div>`;
-  // Payment info (how to pay)
+
+  const ledgerEl=document.getElementById('s-fee-ledger');
+  if(ledgerEl)ledgerEl.innerHTML=(ledger||[]).length?`<div class="tbl-wrap"><table>
+    <thead><tr><th>Term</th><th>Opening</th><th>Billed</th><th>Paid</th><th>Balance</th></tr></thead>
+    <tbody>${ledger.map(l=>`<tr><td>T${l.terms?.term_number||'-'}</td><td>$${parseFloat(l.opening_balance||0).toFixed(2)}</td><td>$${parseFloat(l.billed||0).toFixed(2)}</td><td>$${parseFloat(l.paid||0).toFixed(2)}</td><td><strong>$${parseFloat(l.balance||0).toFixed(2)}</strong></td></tr>`).join('')}</tbody>
+  </table></div>`:'<div class="empty">No ledger entries yet.</div>';
+
+  const termSel=document.getElementById('sp-term');
+  if(termSel){
+    const{data:terms}=await sb.from('terms').select('id,term_number').order('term_number');
+    termSel.innerHTML='<option value="">Auto-allocate to oldest balance (recommended)</option>'+(terms||[]).map(t=>`<option value="${t.id}">Term ${t.term_number}</option>`).join('');
+  }
+
+  const{data:plans}=await sb.from('payment_plans').select('*,terms(term_number)').eq('student_id',stu.id).order('due_date');
+  const planCard=document.getElementById('s-plan-card'),planEl=document.getElementById('s-payment-plan');
+  if(plans?.length && planCard && planEl){
+    planCard.style.display='block';
+    planEl.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Term</th><th>Installment</th><th>Amount Due</th><th>Due Date</th><th>Status</th></tr></thead>
+      <tbody>${plans.map(p=>`<tr><td>T${p.terms?.term_number||'-'}</td><td>#${p.installment_number}</td><td>$${parseFloat(p.amount_due).toFixed(2)}</td><td>${fmt(p.due_date)}</td><td>${badge(p.status)}</td></tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+
   const{data:ps}=await sb.from('payment_settings').select('*').limit(1).maybeSingle();
   const piEl=document.getElementById('s-pay-info');
   if(piEl&&ps)piEl.innerHTML=`
@@ -1624,23 +2186,29 @@ async function loadStuFees(){
         <p><strong>Number:</strong> ${ps.ecocash_number||'-'}<br><strong>Send proof to:</strong> ${ps.admin_email||'-'}<br><br>After paying, fill in the form below and submit your payment record.</p>
       </div>
     </div>`;
-  // Payment history
+
   const tb=document.getElementById('s-pay-tb');
   if(tb)tb.innerHTML=payments?.length?payments.map(p=>`<tr>
     <td><strong>$${parseFloat(p.amount).toFixed(2)}</strong></td>
     <td>${badge(p.payment_method_type||'bank_transfer')}</td>
     <td style="font-size:.78rem">${p.notes||'-'}</td>
     <td>${badge(p.status)}</td>
-    <td>${p.balance_after!=null?`$${parseFloat(p.balance_after).toFixed(2)}`:'-'}</td>
     <td>${fmt(p.created_at)}</td>
-    <td>${p.status==='confirmed'?`<button class="btn btn-outline btn-sm" onclick='downloadReceipt(${JSON.stringify({id:p.id,amount:p.amount,payment_method_type:p.payment_method_type,receipt_ref:p.receipt_ref,status:p.status,balance_after:p.balance_after,confirmed_at:p.confirmed_at,created_at:p.created_at,studentName:S.profile?.full_name,regNumber:stu.reg_number}).replace(/'/g,"&apos;")})'>📄 PDF</button>`:'-'}</td>
-  </tr>`).join(''):'<tr><td colspan="7" class="empty">No payments yet.</td></tr>';
+    <td>${p.status==='confirmed'?`<button class="btn btn-outline btn-sm" onclick='downloadReceipt(${JSON.stringify({id:p.id,amount:p.amount,payment_method_type:p.payment_method_type,receipt_ref:p.receipt_ref,status:p.status,created_at:p.created_at,studentName:S.profile?.full_name,regNumber:stu.reg_number}).replace(/'/g,"&apos;")})'>📄 PDF</button>`:'-'}</td>
+  </tr>`).join(''):'<tr><td colspan="6" class="empty">No payments yet.</td></tr>';
 }
 async function submitStuPayment(){
   const amt=parseFloat(document.getElementById('sp-amt')?.value);
   if(!amt||isNaN(amt)){showMsg('Enter a valid amount','error');return;}
-  const{data:stu}=await sb.from('students').select('id').eq('profile_id',S.user.id).single();
-  await sb.from('fee_payments').insert([{student_id:stu.id,amount:amt,method:'full',payment_method_type:document.getElementById('sp-method')?.value,receipt_ref:document.getElementById('sp-ref')?.value,notes:document.getElementById('sp-notes')?.value,status:'pending'}]);
+  const{data:stu}=await sb.from('students').select('id,intake_id').eq('profile_id',S.user.id).single();
+  const termId=document.getElementById('sp-term')?.value||null;
+  // Make sure at least one ledger row exists so auto-allocation has somewhere to apply
+  const{data:existingLedger}=await sb.from('fee_ledger').select('id').eq('student_id',stu.id).limit(1);
+  if(!existingLedger?.length){
+    const{data:terms}=await sb.from('terms').select('id').eq('intake_id',stu.intake_id).order('term_number').limit(1);
+    if(terms?.length)await sb.rpc('ensure_term_ledger',{p_student_id:stu.id,p_term_id:terms[0].id});
+  }
+  await sb.from('fee_payments').insert([{student_id:stu.id,amount:amt,method:'full',payment_method_type:document.getElementById('sp-method')?.value,term_id:termId,receipt_ref:document.getElementById('sp-ref')?.value,notes:document.getElementById('sp-notes')?.value,status:'pending'}]);
   showMsg('Payment submitted! Admin will verify and confirm. Your balance will update once confirmed.');
   await loadStuFees();
 }
@@ -1756,7 +2324,7 @@ async function changePw(){
 // ══════════════════════════════════════════════════
 function renderStaff(){
   const t=S.tab||'home';
-  const menu=[['home','home','Home'],['results','results','Enter Results'],['library','library','Library'],['leave','leave','My Leave'],['notices','notices','Notices'],['profile','account','My Profile']];
+  const menu=[['home','home','Home'],['results','results','Enter Results'],['result_stats','results','My Statistics'],['library','library','Library'],['leave','leave','My Leave'],['notices','notices','Notices'],['profile','account','My Profile']];
   return`${renderNav('Staff Portal')}${S.msg||''}
   <div class="layout">
     <div class="sidebar-backdrop${S.navOpen?' open':''}" onclick="closeNav()"></div>
@@ -1767,7 +2335,7 @@ function renderStaff(){
   </div>`;
 }
 function renderStaffTab(t){
-  const tabs={home:stHome,results:aResults,library:aLibrary,leave:stLeave,notices:sNotices,profile:stProfile};
+  const tabs={home:stHome,results:aResults,result_stats:aResultStats,library:aLibrary,leave:stLeave,notices:sNotices,profile:stProfile};
   return(tabs[t]||stHome)();
 }
 function stHome(){return`<div class="page-title">Welcome, ${S.profile?.full_name?.split(' ')[0]||'Staff'} 👋</div>
@@ -1827,7 +2395,7 @@ async function loadStaffProfile(){
     </div>
     <div class="form-group"><label>Qualifications</label><textarea id="sp-qual" rows="3" placeholder="e.g. HND Electrical Engineering, City & Guilds Level 3...">${s.qualifications||''}</textarea></div>
     <div class="form-row">
-      <div class="form-group"><label>Date Joined ESigodini VTC</label><input id="sp-joined" type="date" value="${s.date_joined||''}"/></div>
+      <div class="form-group"><label>Date Joined Esigodini VTC</label><input id="sp-joined" type="date" value="${s.date_joined||''}"/></div>
       <div class="form-group"><label>National ID</label><input id="sp-nid" value="${s.national_id||''}"/></div>
     </div>
     <div class="form-row">
@@ -1854,13 +2422,13 @@ function afterRender(){
   const t=S.tab||'';
   const role=S.profile?.role;
   if(role==='admin'){
-    const loaders={dashboard:loadDash,applications:loadApps,accounts:()=>loadCoursesInto('ra-course'),students:loadStudents,staff_mgmt:loadAdminStaff,courses:loadCourses,fees:loadFees,payments:loadPayments,results:loadResults,library:loadLibrary,latw:loadLATW,deferments:loadDeferments,leave:loadLeave,voting:loadVoting,notices:loadNotices,settings:loadSettings,audit:loadAudit};
+    const loaders={dashboard:loadDash,applications:loadApps,accounts:()=>loadCoursesInto('ra-course'),students:loadStudents,staff_mgmt:loadAdminStaff,courses:loadCourses,intakes:loadIntakes,fees:loadFees,payments:loadPayments,fee_ledger:loadFeeLedgerPage,fee_stats:loadFeeStats,results:loadResults,result_stats:loadResultStats,library:loadLibrary,latw:loadLATW,deferments:loadDeferments,leave:loadLeave,voting:loadVoting,notices:loadNotices,settings:loadSettings,audit:loadAudit};
     const fn=loaders[t||'dashboard'];if(fn)fn();
   } else if(role==='student'){
     const loaders={home:loadStuHome,results:loadStuResults,fees:loadStuFees,library:()=>loadStuLibrary('all'),deferment:loadStuDefer,notices:loadStuNotices,account:loadStuAccount,vote:loadStuVote};
     const fn=loaders[t||'home'];if(fn)fn();
   } else if(role==='staff'){
-    const loaders={results:loadResults,library:loadLibrary,leave:loadStaffLeave,notices:loadStuNotices,profile:loadStaffProfile};
+    const loaders={results:loadResults,result_stats:loadResultStats,library:loadLibrary,leave:loadStaffLeave,notices:loadStuNotices,profile:loadStaffProfile};
     const fn=loaders[t];if(fn)fn();
   }
 }
@@ -1877,7 +2445,7 @@ function toggleHelp(){
     panel.style.display='flex';
     if(!panel.dataset.built){
       panel.innerHTML=`<div class="help-panel-header"><strong>💬 Portal Help</strong><button onclick="toggleHelp()">✕</button></div>
-        <div class="help-msgs" id="help-msgs"><div class="help-msg bot">Hi! I can help you find your way around the ESigodini VTC Portal — applying, tracking your application, fees, results, voting, or anything else. What do you need help with?</div></div>
+        <div class="help-msgs" id="help-msgs"><div class="help-msg bot">Hi! I can help you find your way around the Esigodini VTC Portal — applying, tracking your application, fees, results, voting, or anything else. What do you need help with?</div></div>
         <div class="help-input-row"><input id="help-input" placeholder="Ask a question..." onkeydown="if(event.key==='Enter')sendHelpMsg()"/><button onclick="sendHelpMsg()">Send</button></div>`;
       panel.dataset.built='1';
     }
